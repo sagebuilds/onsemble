@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Onsemble Sync",
+  "version": "1.0.0",
+  "description": "Sync video playback with friends across YouTube, Netflix, Disney+, Apple TV and Prime Video.",
+  "permissions": ["activeTab", "storage", "tabs", "scripting"],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "*://*.netflix.com/*",
+    "*://*.disneyplus.com/*",
+    "*://*.tv.apple.com/*",
+    "*://*.amazon.com/*",
+    "*://*.primevideo.com/*",
+    "*://*.lovable.app/*",
+    "http://localhost/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Onsemble Sync"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.netflix.com/*",
+        "*://*.disneyplus.com/*",
+        "*://*.tv.apple.com/*",
+        "*://*.amazon.com/*",
+        "*://*.primevideo.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
