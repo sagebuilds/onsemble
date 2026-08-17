@@ -134,7 +134,7 @@ function Landing() {
           </div>
         </div>
 
-        <div className="float-soft relative">
+        <div className="float-soft relative min-w-0">
           <div className="rounded-[2.5rem] border border-border bg-card p-4 shadow-playful">
             <div className="flex items-center gap-1.5 px-2 pb-3">
               <span className="h-3 w-3 rounded-full bg-bubblegum" />
