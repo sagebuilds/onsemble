@@ -19,7 +19,7 @@ import { STREAMING_SERVICES, type RoomKind } from "@/lib/room";
 
 export const Route = createFileRoute("/room/$code")({
   validateSearch: (search: Record<string, unknown>): { kind: RoomKind } => ({
-    kind: search.kind === "date" ? "date" : "friendship",
+    kind: search["kind"] === "date" ? "date" : "friendship",
   }),
   head: ({ params }) => ({
     meta: [
@@ -110,13 +110,14 @@ function Room() {
     const timers = [
       setTimeout(() => {
         setFriendsJoined(1);
-        toast.success(`${peers[0].name} connected`);
+        toast.success(`${peers[0]?.name ?? "Your friend"} connected`);
       }, 2600),
       setTimeout(() => {
         if (peers.length > 1) setFriendsJoined(peers.length);
       }, 4800),
       setTimeout(() => {
-        const picked = STREAMING_SERVICES[Math.floor(Math.random() * STREAMING_SERVICES.length)];
+        const picked =
+          STREAMING_SERVICES[Math.floor(Math.random() * STREAMING_SERVICES.length)] ?? "Netflix";
         setService(picked);
         setSyncActive(true);
         toast.success(`${picked} detected — sync active`);
