@@ -46,7 +46,7 @@ export function Bookshelf({ roomId }: { roomId: string }) {
   const refresh = () => qc.invalidateQueries({ queryKey: ["shelf", roomId] });
 
   const add = async () => {
-    if (!title.trim()) return toast.error("What's it called?");
+    if (!title.trim()) { toast.error("What's it called?"); return; }
     const uid = await currentUserId();
     if (!uid) return;
     const { error } = await supabase.from("shelf_items").insert({
@@ -58,7 +58,7 @@ export function Bookshelf({ roomId }: { roomId: string }) {
       note: note.trim() || null,
       intended_for: intendedFor,
     });
-    if (error) return toast.error("Couldn't add that to the shelf.");
+    if (error) { toast.error("Couldn't add that to the shelf."); return; }
     setTitle("");
     setLink("");
     setNote("");
@@ -72,7 +72,7 @@ export function Bookshelf({ roomId }: { roomId: string }) {
       .from("shelf_items")
       .update({ state: "finished", rating, finished_at: new Date().toISOString() })
       .eq("id", id);
-    if (error) return toast.error("Couldn't move that one.");
+    if (error) { toast.error("Couldn't move that one."); return; }
     refresh();
   };
 
@@ -91,7 +91,7 @@ export function Bookshelf({ roomId }: { roomId: string }) {
 
   const remove = async (id: string) => {
     const { error } = await supabase.from("shelf_items").delete().eq("id", id);
-    if (error) return toast.error("You can only remove things you added.");
+    if (error) { toast.error("You can only remove things you added."); return; }
     refresh();
   };
 

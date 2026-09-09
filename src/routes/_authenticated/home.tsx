@@ -41,7 +41,7 @@ function Home() {
   const [busy, setBusy] = useState(false);
 
   const createRoom = async () => {
-    if (!name.trim()) return toast.error("Give your room a name first.");
+    if (!name.trim()) { toast.error("Give your room a name first."); return; }
     setBusy(true);
     try {
       const uid = await currentUserId();
@@ -68,7 +68,7 @@ function Home() {
 
   const joinRoom = async () => {
     const code = joinCode.trim().toUpperCase();
-    if (code.length < 4) return toast.error("That invite code looks too short.");
+    if (code.length < 4) { toast.error("That invite code looks too short."); return; }
     setBusy(true);
     try {
       const uid = await currentUserId();

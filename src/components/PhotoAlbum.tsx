@@ -49,7 +49,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
 
   const remove = async (id: string, path: string) => {
     const { error } = await supabase.from("photos").delete().eq("id", id);
-    if (error) return toast.error("You can only remove photos you added.");
+    if (error) { toast.error("You can only remove photos you added."); return; }
     await supabase.storage.from("room-photos").remove([path]);
     refresh();
   };
