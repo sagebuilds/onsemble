@@ -98,6 +98,32 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
     }
   };
 
+  const bulkMove = async (albumId: string) => {
+    if (!selected.size) return;
+    setBulkBusy(true);
+    try {
+      const ids = [...selected];
+      const { error } = await supabase
+        .from("photos")
+        .update({ album_id: albumId === UNFILED ? null : albumId })
+        .in("id", ids);
+      if (error) throw error;
+      const label =
+        albumId === UNFILED
+          ? "Unfiled"
+          : ((albums ?? []).find((a) => a.id === albumId)?.name ?? "album");
+      toast.success(
+        ids.length === 1 ? `Photo moved to ${label}.` : `${ids.length} photos moved to ${label}.`,
+      );
+      exitSelect();
+    } catch {
+      toast.error("Couldn't move those photos.");
+    } finally {
+      setBulkBusy(false);
+      refresh();
+    }
+  };
+
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["photos", roomId] });
     qc.invalidateQueries({ queryKey: ["photo-albums", roomId] });
@@ -312,6 +338,25 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
               >
                 <X className="mr-1 h-4 w-4" /> Done
               </Button>
+              <Select
+                value=""
+                disabled={!selected.size || bulkBusy}
+                onValueChange={bulkMove}
+              >
+                <SelectTrigger className="h-9 w-44 rounded-full text-sm">
+                  <SelectValue
+                    placeholder={selected.size ? `Add ${selected.size} to album` : "Add to album"}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {(albums ?? []).map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={UNFILED}>Unfiled</SelectItem>
+                </SelectContent>
+              </Select>
               <Button
                 variant="destructive"
                 className="rounded-full"
