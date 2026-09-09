@@ -267,7 +267,7 @@ function Room() {
             <div key={peer.id} className="space-y-3">
               <VideoTile
                 name={peer.name}
-                hue={HUES[i % HUES.length]}
+                hue={HUES[i % HUES.length] ?? "var(--electric)"}
                 muted={peer.muted}
                 cameraOff={peer.cameraOff || !peer.camera}
                 stream={peer.camera}
