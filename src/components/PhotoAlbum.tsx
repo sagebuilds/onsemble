@@ -64,14 +64,19 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
     const from = ids.indexOf(sourceId);
     const to = ids.indexOf(targetId);
     if (from === -1 || to === -1) return;
-    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    const [moved] = ids.splice(from, 1);
+    if (!moved) return;
+    ids.splice(to, 0, moved);
     setLocalOrder(ids);
 
-    const slots = visible
-      .map((p, i) => p.position ?? i + 1)
-      .sort((a, b) => a - b);
+    const slots = visible.map((p, i) => p.position ?? i + 1).sort((a, b) => a - b);
     const results = await Promise.all(
-      ids.map((id, i) => supabase.from("photos").update({ position: slots[i] }).eq("id", id)),
+      ids.map((id, i) =>
+        supabase
+          .from("photos")
+          .update({ position: slots[i] ?? i + 1 })
+          .eq("id", id),
+      ),
     );
     if (results.some((r) => r.error)) toast.error("Couldn't save that order.");
     refresh();
