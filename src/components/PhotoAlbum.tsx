@@ -53,6 +53,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [rejected, setRejected] = useState<{ name: string; reason: string }[]>([]);
 
   const toggleSelect = (id: string) =>
     setSelected((prev) => {
