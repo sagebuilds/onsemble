@@ -504,6 +504,22 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
           <p className="text-sm text-muted-foreground">
             Give each photo its own caption — or leave any of them blank.
           </p>
+          {rejected.length > 0 && (
+            <div className="mt-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
+              <p className="font-medium text-destructive">
+                {rejected.length === 1
+                  ? "1 file couldn't be added:"
+                  : `${rejected.length} files couldn't be added:`}
+              </p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted-foreground">
+                {rejected.map((r) => (
+                  <li key={r.name}>
+                    <span className="font-medium text-foreground">{r.name}</span> — {r.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="mt-2 max-h-[50vh] space-y-3 overflow-y-auto pr-1">
             {pending?.map((item, i) => {
               const done = !!progress && i < progress.done;
