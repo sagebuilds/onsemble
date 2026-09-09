@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, FolderPlus, ImagePlus, Trash2, X } from "lucide-react";
+import { Check, FolderPlus, ImagePlus, Loader2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
     { file: File; url: string; caption: string }[] | null
   >(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [view, setView] = useState<string>(ALL);
   const [newAlbum, setNewAlbum] = useState<string | null>(null);
@@ -156,6 +158,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
   const upload = async () => {
     if (!pending?.length) return;
     setBusy(true);
+    setProgress({ done: 0, total: pending.length });
     try {
       const uid = await currentUserId();
       if (!uid) throw new Error("Please sign in again.");
@@ -180,6 +183,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
         });
         if (error) throw error;
         added += 1;
+        setProgress({ done: added, total: pending.length });
       }
       closePending();
       refresh();
@@ -189,6 +193,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
       refresh();
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
@@ -466,29 +471,53 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
             Give each photo its own caption — or leave any of them blank.
           </p>
           <div className="mt-2 max-h-[50vh] space-y-3 overflow-y-auto pr-1">
-            {pending?.map((item, i) => (
-              <div key={item.url} className="flex items-center gap-3">
-                <img
-                  src={item.url}
-                  alt={item.file.name}
-                  className="h-16 w-16 shrink-0 rounded-xl object-cover"
-                />
-                <Input
-                  value={item.caption}
-                  placeholder="Caption (optional)"
-                  className="h-10 rounded-xl"
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setPending((prev) =>
-                      prev
-                        ? prev.map((p, idx) => (idx === i ? { ...p, caption: value } : p))
-                        : prev,
-                    );
-                  }}
-                />
-              </div>
-            ))}
+            {pending?.map((item, i) => {
+              const done = !!progress && i < progress.done;
+              const active = !!progress && i === progress.done;
+              return (
+                <div key={item.url} className="flex items-center gap-3">
+                  <div className="relative h-16 w-16 shrink-0">
+                    <img
+                      src={item.url}
+                      alt={item.file.name}
+                      className="h-16 w-16 rounded-xl object-cover"
+                    />
+                    {(done || active) && (
+                      <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-background/70">
+                        {done ? (
+                          <Check className="h-6 w-6 text-primary" />
+                        ) : (
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <Input
+                    value={item.caption}
+                    placeholder="Caption (optional)"
+                    className="h-10 rounded-xl"
+                    disabled={busy}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setPending((prev) =>
+                        prev
+                          ? prev.map((p, idx) => (idx === i ? { ...p, caption: value } : p))
+                          : prev,
+                      );
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
+          {progress && (
+            <div className="mt-3 space-y-1">
+              <Progress value={(progress.done / Math.max(progress.total, 1)) * 100} />
+              <p className="text-xs text-muted-foreground">
+                Uploading {Math.min(progress.done + 1, progress.total)} of {progress.total}…
+              </p>
+            </div>
+          )}
           <div className="mt-2 flex justify-end gap-2">
             <Button variant="ghost" className="rounded-full" disabled={busy} onClick={closePending}>
               Cancel
