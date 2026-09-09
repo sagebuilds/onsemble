@@ -27,6 +27,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
     { file: File; url: string; caption: string }[] | null
   >(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [view, setView] = useState<string>(ALL);
   const [newAlbum, setNewAlbum] = useState<string | null>(null);
