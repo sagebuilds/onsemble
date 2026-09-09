@@ -5,13 +5,17 @@ import {
   LogOut,
   Mic,
   MicOff,
+  MonitorUp,
+  MonitorX,
   PictureInPicture2,
   Popcorn,
   Radio,
+  ScreenShare,
   Video as VideoIcon,
   VideoOff,
   Wifi,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { VideoTile } from "@/components/VideoTile";
@@ -58,6 +62,10 @@ function Room() {
   const [friendsJoined, setFriendsJoined] = useState(0);
   const [service, setService] = useState<string | null>(null);
   const [syncActive, setSyncActive] = useState(false);
+  const screenVideoRef = useRef<HTMLVideoElement>(null);
+  const stageScreenRef = useRef<HTMLVideoElement>(null);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+
 
   const peers = kind === "date" ? FRIENDS.slice(0, 1) : FRIENDS;
 
@@ -127,6 +135,38 @@ function Room() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* Screen share lives in its own tile, next to the sharer's camera. */
+  useEffect(() => {
+    if (!screenStream) return;
+    if (screenVideoRef.current) screenVideoRef.current.srcObject = screenStream;
+    if (stageScreenRef.current) stageScreenRef.current.srcObject = screenStream;
+  }, [screenStream]);
+
+  useEffect(() => {
+    return () => screenStream?.getTracks().forEach((t) => t.stop());
+  }, [screenStream]);
+
+  const stopSharing = () => {
+    screenStream?.getTracks().forEach((t) => t.stop());
+    setScreenStream(null);
+  };
+
+  const toggleShare = async () => {
+    if (screenStream) {
+      stopSharing();
+      toast("You stopped sharing your screen.");
+      return;
+    }
+    try {
+      const s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      s.getVideoTracks()[0]?.addEventListener("ended", () => setScreenStream(null));
+      setScreenStream(s);
+      toast.success("You're sharing your screen — your camera stays on too.");
+    } catch {
+      toast.error("Screen sharing was cancelled.");
+    }
+  };
+
   const popOut = async () => {
     const el = selfVideoRef.current;
     if (!el) return;
@@ -141,6 +181,7 @@ function Room() {
       toast.error("Picture-in-Picture needs an active camera feed.");
     }
   };
+
 
   const copyLink = () => {
     navigator.clipboard
@@ -197,7 +238,20 @@ function Room() {
       <section className="mx-auto grid w-full max-w-[110rem] grid-cols-[1fr_20rem] gap-6 px-8 pb-10">
         <div className="flex min-h-[34rem] flex-col overflow-hidden rounded-3xl border border-border bg-card/60">
           <div className="flex flex-1 items-center justify-center p-10">
-            {syncActive ? (
+            {screenStream ? (
+              <div className="w-full">
+                <video
+                  ref={stageScreenRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full rounded-2xl border border-primary/30 bg-black shadow-neon"
+                />
+                <p className="mt-3 text-center text-sm text-muted-foreground">
+                  You're sharing your screen with the room.
+                </p>
+              </div>
+            ) : syncActive ? (
               <div className="text-center">
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/15 shadow-neon">
                   <Radio className="h-8 w-8 text-primary" />
@@ -222,6 +276,7 @@ function Room() {
               </div>
             )}
           </div>
+
 
           <div className="flex items-center justify-between border-t border-border px-6 py-4">
             <div className="flex items-center gap-2">
@@ -259,6 +314,15 @@ function Room() {
             speaking={!muted}
           />
 
+          {screenStream && (
+            <div className="overflow-hidden rounded-2xl border border-primary/40 bg-black">
+              <video ref={screenVideoRef} autoPlay playsInline muted className="w-full" />
+              <p className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-primary">
+                <ScreenShare className="h-3.5 w-3.5" /> Your screen
+              </p>
+            </div>
+          )}
+
           {peers.map((p, i) => (
             <VideoTile
               key={p.name}
@@ -289,9 +353,23 @@ function Room() {
             </Button>
           </div>
 
+          <Button
+            variant={screenStream ? "destructive" : "secondary"}
+            className="rounded-full"
+            onClick={toggleShare}
+          >
+            {screenStream ? (
+              <MonitorX className="mr-1 h-4 w-4" />
+            ) : (
+              <MonitorUp className="mr-1 h-4 w-4" />
+            )}
+            {screenStream ? "Stop sharing" : "Share screen"}
+          </Button>
+
           <Button className="rounded-full shadow-neon" onClick={popOut}>
             <PictureInPicture2 className="mr-1 h-4 w-4" /> Pop-Out Video
           </Button>
+
         </aside>
       </section>
     </main>
