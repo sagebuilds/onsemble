@@ -1,5 +1,5 @@
 import { Mic, MicOff, Video as VideoIcon, VideoOff } from "lucide-react";
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -17,6 +17,15 @@ export const VideoTile = forwardRef<HTMLVideoElement, Props>(function VideoTile(
   { name, isSelf, muted, cameraOff, hue = "var(--electric)", speaking, stream, className },
   ref,
 ) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useImperativeHandle(ref, () => videoRef.current as HTMLVideoElement);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (el.srcObject !== (stream ?? null)) el.srcObject = stream ?? null;
+  }, [stream]);
+
   return (
     <div
       className={cn(
@@ -26,10 +35,10 @@ export const VideoTile = forwardRef<HTMLVideoElement, Props>(function VideoTile(
       )}
     >
       <video
-        ref={ref}
+        ref={videoRef}
         autoPlay
         playsInline
-        muted={isSelf || muted}
+        muted={isSelf}
         className={cn(
           "h-full w-full object-cover transition-opacity duration-500",
           cameraOff || !stream ? "opacity-0" : "opacity-100",
