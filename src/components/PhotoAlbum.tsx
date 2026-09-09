@@ -150,12 +150,6 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Input
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Caption (optional)"
-            className="h-10 w-52 rounded-xl"
-          />
           <input
             ref={fileRef}
             type="file"
@@ -164,7 +158,14 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
             hidden
             onChange={(e) => {
               const files = Array.from(e.target.files ?? []);
-              if (files.length) upload(files);
+              if (files.length)
+                setPending(
+                  files.map((file) => ({
+                    file,
+                    url: URL.createObjectURL(file),
+                    caption: "",
+                  })),
+                );
             }}
           />
           <Button className="rounded-full" disabled={busy} onClick={() => fileRef.current?.click()}>
