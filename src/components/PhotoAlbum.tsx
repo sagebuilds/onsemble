@@ -19,6 +19,21 @@ import { currentUserId, usePhotoAlbums, usePhotos } from "@/lib/data";
 const ALL = "all";
 const UNFILED = "unfiled";
 
+const MAX_BYTES = 20 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic"];
+const formatSize = (bytes: number) =>
+  bytes >= 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+const checkFile = (file: File): string | null => {
+  if (!ALLOWED_TYPES.includes(file.type.toLowerCase()))
+    return "not a supported image (use JPG, PNG, WEBP, GIF or HEIC)";
+  if (file.size > MAX_BYTES) return `too large (${formatSize(file.size)} — max 20 MB)`;
+  if (file.size === 0) return "empty file";
+  return null;
+};
+
 export function PhotoAlbum({ roomId }: { roomId: string }) {
   const qc = useQueryClient();
   const { data: photos } = usePhotos(roomId);
@@ -38,6 +53,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [rejected, setRejected] = useState<{ name: string; reason: string }[]>([]);
 
   const toggleSelect = (id: string) =>
     setSelected((prev) => {
@@ -152,6 +168,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
   const closePending = () => {
     pending?.forEach((p) => URL.revokeObjectURL(p.url));
     setPending(null);
+    setRejected([]);
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -246,14 +263,32 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept={ALLOWED_TYPES.join(",")}
             multiple
             hidden
             onChange={(e) => {
               const files = Array.from(e.target.files ?? []);
-              if (files.length)
+              e.target.value = "";
+              if (!files.length) return;
+              const good: File[] = [];
+              const bad: { name: string; reason: string }[] = [];
+              for (const file of files) {
+                const reason = checkFile(file);
+                if (reason) bad.push({ name: file.name, reason });
+                else good.push(file);
+              }
+              setRejected(bad);
+              if (bad.length) {
+                toast.error(
+                  bad.length === 1
+                    ? `${bad[0]!.name} was skipped — ${bad[0]!.reason}`
+                    : `${bad.length} files were skipped`,
+                  { description: bad.map((b) => `${b.name}: ${b.reason}`).join("\n") },
+                );
+              }
+              if (good.length)
                 setPending(
-                  files.map((file) => ({
+                  good.map((file) => ({
                     file,
                     url: URL.createObjectURL(file),
                     caption: "",
@@ -470,6 +505,22 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
           <p className="text-sm text-muted-foreground">
             Give each photo its own caption — or leave any of them blank.
           </p>
+          {rejected.length > 0 && (
+            <div className="mt-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
+              <p className="font-medium text-destructive">
+                {rejected.length === 1
+                  ? "1 file couldn't be added:"
+                  : `${rejected.length} files couldn't be added:`}
+              </p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted-foreground">
+                {rejected.map((r) => (
+                  <li key={r.name}>
+                    <span className="font-medium text-foreground">{r.name}</span> — {r.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="mt-2 max-h-[50vh] space-y-3 overflow-y-auto pr-1">
             {pending?.map((item, i) => {
               const done = !!progress && i < progress.done;
