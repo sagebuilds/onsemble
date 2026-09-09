@@ -192,6 +192,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
       refresh();
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
