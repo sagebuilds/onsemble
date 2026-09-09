@@ -19,6 +19,21 @@ import { currentUserId, usePhotoAlbums, usePhotos } from "@/lib/data";
 const ALL = "all";
 const UNFILED = "unfiled";
 
+const MAX_BYTES = 20 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic"];
+const formatSize = (bytes: number) =>
+  bytes >= 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+const checkFile = (file: File): string | null => {
+  if (!ALLOWED_TYPES.includes(file.type.toLowerCase()))
+    return "not a supported image (use JPG, PNG, WEBP, GIF or HEIC)";
+  if (file.size > MAX_BYTES) return `too large (${formatSize(file.size)} — max 20 MB)`;
+  if (file.size === 0) return "empty file";
+  return null;
+};
+
 export function PhotoAlbum({ roomId }: { roomId: string }) {
   const qc = useQueryClient();
   const { data: photos } = usePhotos(roomId);
