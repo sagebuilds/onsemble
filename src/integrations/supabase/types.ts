@@ -14,8 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      photo_albums: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          room_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          room_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          room_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_albums_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photos: {
         Row: {
+          album_id: string | null
           caption: string | null
           created_at: string
           id: string
@@ -24,6 +60,7 @@ export type Database = {
           uploaded_by: string
         }
         Insert: {
+          album_id?: string | null
           caption?: string | null
           created_at?: string
           id?: string
@@ -32,6 +69,7 @@ export type Database = {
           uploaded_by: string
         }
         Update: {
+          album_id?: string | null
           caption?: string | null
           created_at?: string
           id?: string
@@ -40,6 +78,13 @@ export type Database = {
           uploaded_by?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "photos_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "photo_albums"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "photos_room_id_fkey"
             columns: ["room_id"]
