@@ -75,6 +75,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
       const uid = await currentUserId();
       if (!uid) throw new Error("Please sign in again.");
       const albumId = view === ALL || view === UNFILED ? null : view;
+      let nextPosition = (photos ?? []).reduce((max, p) => Math.max(max, p.position ?? 0), 0);
       let added = 0;
       for (const item of pending) {
         const ext = item.file.name.split(".").pop() ?? "jpg";
