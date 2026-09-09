@@ -19,7 +19,7 @@ Turns Onsemble from a one-off watch-party demo into something couples and friend
 **Bookshelf**
 - Each room has a shelf of books, movies and shows.
 - Add an item with title, type, optional link or cover, a note about why you added it, and who it's for ("for you", "for us", "for me").
-- Two states: Want to watch/read, and Finished — with an optional rating and a short reaction when moved to finished.
+- Two states: Suggestion, and Finished — with an optional rating and a short reaction when moved to finished.
 - Filter by type, by state, and by who it was picked for.
 
 **Photo album**
@@ -28,7 +28,8 @@ Turns Onsemble from a one-off watch-party demo into something couples and friend
 - Private to room members only.
 
 **Screen share on calls**
-- A "Share screen" button in the room's video sidebar that swaps your camera tile for your screen and shows it in the main stage, with a clear "stop sharing" control.
+- A "Share screen" button in the room's video sidebar, with a clear "stop sharing" control.
+- The shared screen appears as its own separate tile (and on the main stage), so the sharer's camera tile stays visible alongside it.
 
 ## How it works
 
