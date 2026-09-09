@@ -132,6 +132,21 @@ export function useWatchHistory(roomId: string) {
   });
 }
 
+export function usePhotoAlbums(roomId: string) {
+  return useQuery({
+    queryKey: ["photo-albums", roomId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("photo_albums")
+        .select("id, name, created_by, created_at")
+        .eq("room_id", roomId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function usePhotos(roomId: string) {
   return useQuery({
     queryKey: ["photos", roomId],
