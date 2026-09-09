@@ -30,6 +30,9 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [view, setView] = useState<string>(ALL);
   const [newAlbum, setNewAlbum] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const [localOrder, setLocalOrder] = useState<string[] | null>(null);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["photos", roomId] });
@@ -38,10 +41,41 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
 
   const visible = useMemo(() => {
     const all = photos ?? [];
-    if (view === ALL) return all;
-    if (view === UNFILED) return all.filter((p) => !p.album_id);
-    return all.filter((p) => p.album_id === view);
-  }, [photos, view]);
+    const filtered =
+      view === ALL
+        ? all
+        : view === UNFILED
+          ? all.filter((p) => !p.album_id)
+          : all.filter((p) => p.album_id === view);
+    if (!localOrder) return filtered;
+    const rank = (id: string) => {
+      const i = localOrder.indexOf(id);
+      return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+    };
+    return [...filtered].sort((a, b) => rank(a.id) - rank(b.id));
+  }, [photos, view, localOrder]);
+
+  const reorder = async (targetId: string) => {
+    const sourceId = dragId;
+    setDragId(null);
+    setOverId(null);
+    if (!sourceId || sourceId === targetId) return;
+    const ids = visible.map((p) => p.id);
+    const from = ids.indexOf(sourceId);
+    const to = ids.indexOf(targetId);
+    if (from === -1 || to === -1) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    setLocalOrder(ids);
+
+    const slots = visible
+      .map((p, i) => p.position ?? i + 1)
+      .sort((a, b) => a - b);
+    const results = await Promise.all(
+      ids.map((id, i) => supabase.from("photos").update({ position: slots[i] }).eq("id", id)),
+    );
+    if (results.some((r) => r.error)) toast.error("Couldn't save that order.");
+    refresh();
+  };
 
   const createAlbum = async () => {
     const name = (newAlbum ?? "").trim();
