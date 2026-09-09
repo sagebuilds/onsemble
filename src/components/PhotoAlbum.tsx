@@ -83,12 +83,14 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
           .from("room-photos")
           .upload(path, item.file, { contentType: item.file.type });
         if (uploadError) throw uploadError;
+        nextPosition += 1;
         const { error } = await supabase.from("photos").insert({
           room_id: roomId,
           uploaded_by: uid,
           storage_path: path,
           album_id: albumId,
           caption: item.caption.trim() || null,
+          position: nextPosition,
         });
         if (error) throw error;
         added += 1;
