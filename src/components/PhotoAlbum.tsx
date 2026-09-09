@@ -256,9 +256,46 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
                 );
             }}
           />
-          <Button className="rounded-full" disabled={busy} onClick={() => fileRef.current?.click()}>
+          <Button
+            className="rounded-full"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+          >
             <ImagePlus className="mr-1 h-4 w-4" /> {busy ? "Uploading…" : "Upload"}
           </Button>
+          {selectMode ? (
+            <>
+              <Button
+                variant="ghost"
+                className="rounded-full"
+                onClick={exitSelect}
+              >
+                <X className="mr-1 h-4 w-4" /> Done
+              </Button>
+              <Button
+                variant="destructive"
+                className="rounded-full"
+                disabled={!selected.size || bulkBusy}
+                onClick={bulkDelete}
+              >
+                <Trash2 className="mr-1 h-4 w-4" />
+                {bulkBusy
+                  ? "Removing…"
+                  : selected.size
+                    ? `Delete ${selected.size}`
+                    : "Delete"}
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="ghost"
+              className="rounded-full"
+              disabled={busy || visible.length === 0}
+              onClick={() => setSelectMode(true)}
+            >
+              <Check className="mr-1 h-4 w-4" /> Select
+            </Button>
+          )}
         </div>
       </div>
 
