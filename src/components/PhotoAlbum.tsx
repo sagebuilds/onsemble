@@ -23,7 +23,9 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
   const { data: photos } = usePhotos(roomId);
   const { data: albums } = usePhotoAlbums(roomId);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [caption, setCaption] = useState("");
+  const [pending, setPending] = useState<
+    { file: File; url: string; caption: string }[] | null
+  >(null);
   const [busy, setBusy] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [view, setView] = useState<string>(ALL);
@@ -60,31 +62,38 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
     refresh();
   };
 
-  const upload = async (files: File[]) => {
+  const closePending = () => {
+    pending?.forEach((p) => URL.revokeObjectURL(p.url));
+    setPending(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const upload = async () => {
+    if (!pending?.length) return;
     setBusy(true);
     try {
       const uid = await currentUserId();
       if (!uid) throw new Error("Please sign in again.");
       const albumId = view === ALL || view === UNFILED ? null : view;
       let added = 0;
-      for (const file of files) {
-        const ext = file.name.split(".").pop() ?? "jpg";
+      for (const item of pending) {
+        const ext = item.file.name.split(".").pop() ?? "jpg";
         const path = `${roomId}/${crypto.randomUUID()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("room-photos")
-          .upload(path, file, { contentType: file.type });
+          .upload(path, item.file, { contentType: item.file.type });
         if (uploadError) throw uploadError;
         const { error } = await supabase.from("photos").insert({
           room_id: roomId,
           uploaded_by: uid,
           storage_path: path,
           album_id: albumId,
-          caption: caption.trim() || null,
+          caption: item.caption.trim() || null,
         });
         if (error) throw error;
         added += 1;
       }
-      setCaption("");
+      closePending();
       refresh();
       toast.success(added === 1 ? "Photo added to the album!" : `${added} photos added!`);
     } catch (err) {
@@ -92,7 +101,6 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
       refresh();
     } finally {
       setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
@@ -142,12 +150,6 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Input
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Caption (optional)"
-            className="h-10 w-52 rounded-xl"
-          />
           <input
             ref={fileRef}
             type="file"
@@ -156,7 +158,14 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
             hidden
             onChange={(e) => {
               const files = Array.from(e.target.files ?? []);
-              if (files.length) upload(files);
+              if (files.length)
+                setPending(
+                  files.map((file) => ({
+                    file,
+                    url: URL.createObjectURL(file),
+                    caption: "",
+                  })),
+                );
             }}
           />
           <Button className="rounded-full" disabled={busy} onClick={() => fileRef.current?.click()}>
@@ -277,6 +286,49 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
           {lightbox && (
             <img src={lightbox} alt="Room photo" className="w-full rounded-xl object-contain" />
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pending} onOpenChange={(o) => !o && !busy && closePending()}>
+        <DialogContent className="max-w-2xl">
+          <h3 className="font-display text-xl font-semibold">
+            Add captions ({pending?.length ?? 0})
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Give each photo its own caption — or leave any of them blank.
+          </p>
+          <div className="mt-2 max-h-[50vh] space-y-3 overflow-y-auto pr-1">
+            {pending?.map((item, i) => (
+              <div key={item.url} className="flex items-center gap-3">
+                <img
+                  src={item.url}
+                  alt={item.file.name}
+                  className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                />
+                <Input
+                  value={item.caption}
+                  placeholder="Caption (optional)"
+                  className="h-10 rounded-xl"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setPending((prev) =>
+                      prev
+                        ? prev.map((p, idx) => (idx === i ? { ...p, caption: value } : p))
+                        : prev,
+                    );
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex justify-end gap-2">
+            <Button variant="ghost" className="rounded-full" disabled={busy} onClick={closePending}>
+              Cancel
+            </Button>
+            <Button className="rounded-full" disabled={busy} onClick={upload}>
+              {busy ? "Uploading…" : "Upload"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
