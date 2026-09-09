@@ -18,29 +18,34 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["photos", roomId] });
 
-  const upload = async (file: File) => {
+  const upload = async (files: File[]) => {
     setBusy(true);
     try {
       const uid = await currentUserId();
       if (!uid) throw new Error("Please sign in again.");
-      const ext = file.name.split(".").pop() ?? "jpg";
-      const path = `${roomId}/${crypto.randomUUID()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("room-photos")
-        .upload(path, file, { contentType: file.type });
-      if (uploadError) throw uploadError;
-      const { error } = await supabase.from("photos").insert({
-        room_id: roomId,
-        uploaded_by: uid,
-        storage_path: path,
-        caption: caption.trim() || null,
-      });
-      if (error) throw error;
+      let added = 0;
+      for (const file of files) {
+        const ext = file.name.split(".").pop() ?? "jpg";
+        const path = `${roomId}/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("room-photos")
+          .upload(path, file, { contentType: file.type });
+        if (uploadError) throw uploadError;
+        const { error } = await supabase.from("photos").insert({
+          room_id: roomId,
+          uploaded_by: uid,
+          storage_path: path,
+          caption: caption.trim() || null,
+        });
+        if (error) throw error;
+        added += 1;
+      }
       setCaption("");
       refresh();
-      toast.success("Photo added to the album!");
+      toast.success(added === 1 ? "Photo added to the album!" : `${added} photos added!`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't upload that photo.");
+      toast.error(err instanceof Error ? err.message : "Couldn't upload those photos.");
+      refresh();
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -77,14 +82,15 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
             ref={fileRef}
             type="file"
             accept="image/*"
+            multiple
             hidden
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) upload(file);
+              const files = Array.from(e.target.files ?? []);
+              if (files.length) upload(files);
             }}
           />
           <Button className="rounded-full" disabled={busy} onClick={() => fileRef.current?.click()}>
-            <ImagePlus className="mr-1 h-4 w-4" /> Upload
+            <ImagePlus className="mr-1 h-4 w-4" /> {busy ? "Uploading…" : "Upload"}
           </Button>
         </div>
       </div>
