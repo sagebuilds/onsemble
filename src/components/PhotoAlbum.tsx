@@ -182,6 +182,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
         });
         if (error) throw error;
         added += 1;
+        setProgress({ done: added, total: pending.length });
       }
       closePending();
       refresh();
