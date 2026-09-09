@@ -219,7 +219,10 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setView(tab.key)}
+            onClick={() => {
+              setLocalOrder(null);
+              setView(tab.key);
+            }}
             className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
               view === tab.key
                 ? "bg-primary text-primary-foreground"
@@ -268,8 +271,31 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
       ) : (
         <div className="mt-5 grid grid-cols-4 gap-3">
           {visible.map((photo) => (
-            <div key={photo.id} className="space-y-2">
-              <div className="group relative aspect-square overflow-hidden rounded-2xl border border-border">
+            <div
+              key={photo.id}
+              draggable
+              onDragStart={() => setDragId(photo.id)}
+              onDragEnd={() => {
+                setDragId(null);
+                setOverId(null);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (overId !== photo.id) setOverId(photo.id);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                reorder(photo.id);
+              }}
+              className={`space-y-2 transition-opacity ${dragId === photo.id ? "opacity-40" : ""}`}
+            >
+              <div
+                className={`group relative aspect-square cursor-grab overflow-hidden rounded-2xl border transition-colors active:cursor-grabbing ${
+                  overId === photo.id && dragId && dragId !== photo.id
+                    ? "border-primary ring-2 ring-primary"
+                    : "border-border"
+                }`}
+              >
                 <button
                   onClick={() => photo.url && setLightbox(photo.url)}
                   className="h-full w-full"
