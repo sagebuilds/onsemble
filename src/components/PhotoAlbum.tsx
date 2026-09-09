@@ -168,6 +168,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
   const closePending = () => {
     pending?.forEach((p) => URL.revokeObjectURL(p.url));
     setPending(null);
+    setRejected([]);
     if (fileRef.current) fileRef.current.value = "";
   };
 
