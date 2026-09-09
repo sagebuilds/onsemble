@@ -33,6 +33,52 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const exitSelect = () => {
+    setSelectMode(false);
+    setSelected(new Set());
+  };
+
+  const bulkDelete = async () => {
+    if (!selected.size) return;
+    setBulkBusy(true);
+    try {
+      const targets = (photos ?? []).filter((p) => selected.has(p.id));
+      const { error } = await supabase
+        .from("photos")
+        .delete()
+        .in(
+          "id",
+          targets.map((p) => p.id),
+        );
+      if (error) throw error;
+      await supabase.storage
+        .from("room-photos")
+        .remove(targets.map((p) => p.storage_path));
+      toast.success(
+        selected.size === 1
+          ? "Photo removed."
+          : `${selected.size} photos removed.`,
+      );
+      exitSelect();
+      refresh();
+    } catch {
+      toast.error("You can only remove photos you added.");
+      refresh();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["photos", roomId] });
