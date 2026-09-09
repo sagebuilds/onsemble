@@ -23,7 +23,9 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
   const { data: photos } = usePhotos(roomId);
   const { data: albums } = usePhotoAlbums(roomId);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [caption, setCaption] = useState("");
+  const [pending, setPending] = useState<
+    { file: File; url: string; caption: string }[] | null
+  >(null);
   const [busy, setBusy] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [view, setView] = useState<string>(ALL);
@@ -60,31 +62,38 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
     refresh();
   };
 
-  const upload = async (files: File[]) => {
+  const closePending = () => {
+    pending?.forEach((p) => URL.revokeObjectURL(p.url));
+    setPending(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const upload = async () => {
+    if (!pending?.length) return;
     setBusy(true);
     try {
       const uid = await currentUserId();
       if (!uid) throw new Error("Please sign in again.");
       const albumId = view === ALL || view === UNFILED ? null : view;
       let added = 0;
-      for (const file of files) {
-        const ext = file.name.split(".").pop() ?? "jpg";
+      for (const item of pending) {
+        const ext = item.file.name.split(".").pop() ?? "jpg";
         const path = `${roomId}/${crypto.randomUUID()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("room-photos")
-          .upload(path, file, { contentType: file.type });
+          .upload(path, item.file, { contentType: item.file.type });
         if (uploadError) throw uploadError;
         const { error } = await supabase.from("photos").insert({
           room_id: roomId,
           uploaded_by: uid,
           storage_path: path,
           album_id: albumId,
-          caption: caption.trim() || null,
+          caption: item.caption.trim() || null,
         });
         if (error) throw error;
         added += 1;
       }
-      setCaption("");
+      closePending();
       refresh();
       toast.success(added === 1 ? "Photo added to the album!" : `${added} photos added!`);
     } catch (err) {
@@ -92,7 +101,6 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
       refresh();
     } finally {
       setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
