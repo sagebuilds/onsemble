@@ -288,6 +288,49 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!pending} onOpenChange={(o) => !o && !busy && closePending()}>
+        <DialogContent className="max-w-2xl">
+          <h3 className="font-display text-xl font-semibold">
+            Add captions ({pending?.length ?? 0})
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Give each photo its own caption — or leave any of them blank.
+          </p>
+          <div className="mt-2 max-h-[50vh] space-y-3 overflow-y-auto pr-1">
+            {pending?.map((item, i) => (
+              <div key={item.url} className="flex items-center gap-3">
+                <img
+                  src={item.url}
+                  alt={item.file.name}
+                  className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                />
+                <Input
+                  value={item.caption}
+                  placeholder="Caption (optional)"
+                  className="h-10 rounded-xl"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setPending((prev) =>
+                      prev
+                        ? prev.map((p, idx) => (idx === i ? { ...p, caption: value } : p))
+                        : prev,
+                    );
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex justify-end gap-2">
+            <Button variant="ghost" className="rounded-full" disabled={busy} onClick={closePending}>
+              Cancel
+            </Button>
+            <Button className="rounded-full" disabled={busy} onClick={upload}>
+              {busy ? "Uploading…" : "Upload"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
