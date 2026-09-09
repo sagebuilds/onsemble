@@ -261,14 +261,32 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept={ALLOWED_TYPES.join(",")}
             multiple
             hidden
             onChange={(e) => {
               const files = Array.from(e.target.files ?? []);
-              if (files.length)
+              e.target.value = "";
+              if (!files.length) return;
+              const good: File[] = [];
+              const bad: { name: string; reason: string }[] = [];
+              for (const file of files) {
+                const reason = checkFile(file);
+                if (reason) bad.push({ name: file.name, reason });
+                else good.push(file);
+              }
+              setRejected(bad);
+              if (bad.length) {
+                toast.error(
+                  bad.length === 1
+                    ? `${bad[0]!.name} was skipped — ${bad[0]!.reason}`
+                    : `${bad.length} files were skipped`,
+                  { description: bad.map((b) => `${b.name}: ${b.reason}`).join("\n") },
+                );
+              }
+              if (good.length)
                 setPending(
-                  files.map((file) => ({
+                  good.map((file) => ({
                     file,
                     url: URL.createObjectURL(file),
                     caption: "",
