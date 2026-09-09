@@ -361,50 +361,67 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
           {visible.map((photo) => (
             <div
               key={photo.id}
-              draggable
-              onDragStart={() => setDragId(photo.id)}
+              draggable={!selectMode}
+              onDragStart={() => !selectMode && setDragId(photo.id)}
               onDragEnd={() => {
                 setDragId(null);
                 setOverId(null);
               }}
               onDragOver={(e) => {
                 e.preventDefault();
-                if (overId !== photo.id) setOverId(photo.id);
+                if (!selectMode && overId !== photo.id) setOverId(photo.id);
               }}
               onDrop={(e) => {
                 e.preventDefault();
-                reorder(photo.id);
+                if (!selectMode) reorder(photo.id);
               }}
               className={`space-y-2 transition-opacity ${dragId === photo.id ? "opacity-40" : ""}`}
             >
               <div
-                className={`group relative aspect-square cursor-grab overflow-hidden rounded-2xl border transition-colors active:cursor-grabbing ${
-                  overId === photo.id && dragId && dragId !== photo.id
-                    ? "border-primary ring-2 ring-primary"
-                    : "border-border"
-                }`}
+                className={`group relative aspect-square overflow-hidden rounded-2xl border transition-colors ${
+                  selectMode
+                    ? selected.has(photo.id)
+                      ? "border-primary ring-2 ring-primary"
+                      : "border-border"
+                    : overId === photo.id && dragId && dragId !== photo.id
+                      ? "border-primary ring-2 ring-primary"
+                      : "border-border"
+                } ${selectMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}
+                onClick={() =>
+                  selectMode ? toggleSelect(photo.id) : photo.url && setLightbox(photo.url)
+                }
               >
-                <button
-                  onClick={() => photo.url && setLightbox(photo.url)}
-                  className="h-full w-full"
-                  aria-label={photo.caption ?? "Open photo"}
-                >
-                  {photo.url && (
-                    <img
-                      src={photo.url}
-                      alt={photo.caption ?? "Room photo"}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                  )}
-                </button>
-                <button
-                  onClick={() => remove(photo.id, photo.storage_path)}
-                  className="absolute right-2 top-2 rounded-full bg-background/80 p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
-                  aria-label="Delete photo"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {photo.url && (
+                  <img
+                    src={photo.url}
+                    alt={photo.caption ?? "Room photo"}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                  />
+                )}
+                {selectMode && (
+                  <div
+                    className={`absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors ${
+                      selected.has(photo.id)
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-white/80 bg-background/60 text-transparent"
+                    }`}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </div>
+                )}
+                {!selectMode && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      remove(photo.id, photo.storage_path);
+                    }}
+                    className="absolute right-2 top-2 rounded-full bg-background/80 p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-label="Delete photo"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
                 {photo.caption && (
                   <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-xs font-semibold text-white">
                     {photo.caption}
