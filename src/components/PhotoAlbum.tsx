@@ -157,6 +157,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
   const upload = async () => {
     if (!pending?.length) return;
     setBusy(true);
+    setProgress({ done: 0, total: pending.length });
     try {
       const uid = await currentUserId();
       if (!uid) throw new Error("Please sign in again.");
