@@ -49,7 +49,10 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
 
   const remove = async (id: string, path: string) => {
     const { error } = await supabase.from("photos").delete().eq("id", id);
-    if (error) { toast.error("You can only remove photos you added."); return; }
+    if (error) {
+      toast.error("You can only remove photos you added.");
+      return;
+    }
     await supabase.storage.from("room-photos").remove([path]);
     refresh();
   };
@@ -80,11 +83,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
               if (file) upload(file);
             }}
           />
-          <Button
-            className="rounded-full"
-            disabled={busy}
-            onClick={() => fileRef.current?.click()}
-          >
+          <Button className="rounded-full" disabled={busy} onClick={() => fileRef.current?.click()}>
             <ImagePlus className="mr-1 h-4 w-4" /> Upload
           </Button>
         </div>
