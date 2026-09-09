@@ -65,7 +65,14 @@ function Landing() {
           <a href="/extension" className="transition-colors hover:text-foreground">
             Chrome extension
           </a>
+          <a
+            href="/home"
+            className="rounded-full bg-joy px-4 py-2 text-primary-foreground shadow-playful transition-transform hover:scale-105"
+          >
+            Sign in
+          </a>
         </nav>
+
       </header>
 
       <section className="relative mx-auto grid w-full max-w-6xl grid-cols-[1.05fr_0.95fr] items-center gap-16 px-8 pb-24 pt-10">
