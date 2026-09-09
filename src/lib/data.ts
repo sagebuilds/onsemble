@@ -155,6 +155,7 @@ export function usePhotos(roomId: string) {
         .from("photos")
         .select("*")
         .eq("room_id", roomId)
+        .order("position", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
       const rows = data ?? [];

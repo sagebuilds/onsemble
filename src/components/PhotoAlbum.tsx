@@ -30,6 +30,9 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [view, setView] = useState<string>(ALL);
   const [newAlbum, setNewAlbum] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const [localOrder, setLocalOrder] = useState<string[] | null>(null);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["photos", roomId] });
@@ -38,10 +41,46 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
 
   const visible = useMemo(() => {
     const all = photos ?? [];
-    if (view === ALL) return all;
-    if (view === UNFILED) return all.filter((p) => !p.album_id);
-    return all.filter((p) => p.album_id === view);
-  }, [photos, view]);
+    const filtered =
+      view === ALL
+        ? all
+        : view === UNFILED
+          ? all.filter((p) => !p.album_id)
+          : all.filter((p) => p.album_id === view);
+    if (!localOrder) return filtered;
+    const rank = (id: string) => {
+      const i = localOrder.indexOf(id);
+      return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+    };
+    return [...filtered].sort((a, b) => rank(a.id) - rank(b.id));
+  }, [photos, view, localOrder]);
+
+  const reorder = async (targetId: string) => {
+    const sourceId = dragId;
+    setDragId(null);
+    setOverId(null);
+    if (!sourceId || sourceId === targetId) return;
+    const ids = visible.map((p) => p.id);
+    const from = ids.indexOf(sourceId);
+    const to = ids.indexOf(targetId);
+    if (from === -1 || to === -1) return;
+    const [moved] = ids.splice(from, 1);
+    if (!moved) return;
+    ids.splice(to, 0, moved);
+    setLocalOrder(ids);
+
+    const slots = visible.map((p, i) => p.position ?? i + 1).sort((a, b) => a - b);
+    const results = await Promise.all(
+      ids.map((id, i) =>
+        supabase
+          .from("photos")
+          .update({ position: slots[i] ?? i + 1 })
+          .eq("id", id),
+      ),
+    );
+    if (results.some((r) => r.error)) toast.error("Couldn't save that order.");
+    refresh();
+  };
 
   const createAlbum = async () => {
     const name = (newAlbum ?? "").trim();
@@ -75,6 +114,7 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
       const uid = await currentUserId();
       if (!uid) throw new Error("Please sign in again.");
       const albumId = view === ALL || view === UNFILED ? null : view;
+      let nextPosition = (photos ?? []).reduce((max, p) => Math.max(max, p.position ?? 0), 0);
       let added = 0;
       for (const item of pending) {
         const ext = item.file.name.split(".").pop() ?? "jpg";
@@ -83,12 +123,14 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
           .from("room-photos")
           .upload(path, item.file, { contentType: item.file.type });
         if (uploadError) throw uploadError;
+        nextPosition += 1;
         const { error } = await supabase.from("photos").insert({
           room_id: roomId,
           uploaded_by: uid,
           storage_path: path,
           album_id: albumId,
           caption: item.caption.trim() || null,
+          position: nextPosition,
         });
         if (error) throw error;
         added += 1;
@@ -182,7 +224,10 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setView(tab.key)}
+            onClick={() => {
+              setLocalOrder(null);
+              setView(tab.key);
+            }}
             className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
               view === tab.key
                 ? "bg-primary text-primary-foreground"
@@ -231,8 +276,31 @@ export function PhotoAlbum({ roomId }: { roomId: string }) {
       ) : (
         <div className="mt-5 grid grid-cols-4 gap-3">
           {visible.map((photo) => (
-            <div key={photo.id} className="space-y-2">
-              <div className="group relative aspect-square overflow-hidden rounded-2xl border border-border">
+            <div
+              key={photo.id}
+              draggable
+              onDragStart={() => setDragId(photo.id)}
+              onDragEnd={() => {
+                setDragId(null);
+                setOverId(null);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (overId !== photo.id) setOverId(photo.id);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                reorder(photo.id);
+              }}
+              className={`space-y-2 transition-opacity ${dragId === photo.id ? "opacity-40" : ""}`}
+            >
+              <div
+                className={`group relative aspect-square cursor-grab overflow-hidden rounded-2xl border transition-colors active:cursor-grabbing ${
+                  overId === photo.id && dragId && dragId !== photo.id
+                    ? "border-primary ring-2 ring-primary"
+                    : "border-border"
+                }`}
+              >
                 <button
                   onClick={() => photo.url && setLightbox(photo.url)}
                   className="h-full w-full"
