@@ -55,6 +55,7 @@ export type Database = {
           caption: string | null
           created_at: string
           id: string
+          position: number | null
           room_id: string
           storage_path: string
           uploaded_by: string
@@ -64,6 +65,7 @@ export type Database = {
           caption?: string | null
           created_at?: string
           id?: string
+          position?: number | null
           room_id: string
           storage_path: string
           uploaded_by: string
@@ -73,6 +75,7 @@ export type Database = {
           caption?: string | null
           created_at?: string
           id?: string
+          position?: number | null
           room_id?: string
           storage_path?: string
           uploaded_by?: string
