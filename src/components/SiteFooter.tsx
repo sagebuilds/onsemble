@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Heart, Mail, Popcorn } from "lucide-react";
 
-const CONTACT_EMAIL = "hello@onsemble.app";
+const CONTACT_EMAIL = "sage@sagefranch.com";
 
 const STREAMING_SERVICES = [
   "YouTube",
