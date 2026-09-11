@@ -114,7 +114,11 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
       const existing = peersRef.current.get(remoteId);
       if (existing) return existing;
 
-      const pc = new RTCPeerConnection(ICE);
+      // Peers that already failed a direct connection are retried through the relay only.
+      const relayOnly = relayOnlyRef.current.has(remoteId);
+      const pc = new RTCPeerConnection(
+        relayOnly ? { ...iceRef.current, iceTransportPolicy: "relay" } : iceRef.current,
+      );
       const entry: PeerConn = {
         pc,
         polite: myId > remoteId,
@@ -153,13 +157,35 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
       };
       pc.onconnectionstatechange = () => {
         entry.connected = pc.connectionState === "connected";
-        if (pc.connectionState === "failed") pc.restartIce();
+        if (entry.connected && relayOnly) setUsingRelay(true);
+
+        if (pc.connectionState === "failed") {
+          const canRelay = relayAvailableRef.current && !relayOnlyRef.current.has(remoteId);
+          if (canRelay) {
+            // Direct peer-to-peer is blocked on this network — rebuild through TURN.
+            relayOnlyRef.current.add(remoteId);
+            pc.onicecandidate = null;
+            pc.ontrack = null;
+            pc.onnegotiationneeded = null;
+            pc.onconnectionstatechange = null;
+            pc.close();
+            peersRef.current.delete(remoteId);
+            setTimeout(() => {
+              if (metaRef.current.has(remoteId)) ensurePeerRef.current?.(remoteId);
+            }, 400);
+          } else {
+            pc.restartIce();
+          }
+        }
         syncPeers();
       };
       return entry;
     },
     [myId, signal, syncPeers],
   );
+
+  const ensurePeerRef = useRef<((remoteId: string) => PeerConn) | null>(null);
+  ensurePeerRef.current = ensurePeer;
 
   const dropPeer = useCallback(
     (remoteId: string) => {
