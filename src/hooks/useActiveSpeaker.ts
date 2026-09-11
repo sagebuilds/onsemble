@@ -36,7 +36,7 @@ export function useActiveSpeaker(sources: Source[]): string | null {
         analyser.fftSize = 512;
         node.connect(analyser);
         nodes.push(node);
-        analysers.push({ id: source.id, analyser, data: new Uint8Array(analyser.frequencyBinCount) });
+        analysers.push({ id: source.id, analyser, data: new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount)) });
       } catch {
         /* a track can disappear mid-setup */
       }
