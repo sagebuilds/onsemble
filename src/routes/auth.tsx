@@ -160,6 +160,18 @@ function AuthPage() {
         >
           {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
         </button>
+
+        <p className="mt-5 text-center text-xs leading-relaxed text-muted-foreground">
+          By continuing you agree to our{" "}
+          <Link to="/terms" className="font-semibold hover:text-foreground hover:underline">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link to="/privacy" className="font-semibold hover:text-foreground hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </div>
     </main>
   );
