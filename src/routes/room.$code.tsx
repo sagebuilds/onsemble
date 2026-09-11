@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy,
   LayoutGrid,
+  Lock,
+  LockOpen,
   Maximize2,
   LogOut,
   Mic,
@@ -13,6 +15,7 @@ import {
   Popcorn,
   Radio,
   ScreenShare,
+  UserX,
   Video as VideoIcon,
   VideoOff,
   Wifi,
@@ -23,11 +26,13 @@ import { Button } from "@/components/ui/button";
 import { VideoTile } from "@/components/VideoTile";
 import { useCall } from "@/hooks/useCall";
 import { useActiveSpeaker } from "@/hooks/useActiveSpeaker";
+import { useSession } from "@/hooks/useSession";
 import { useSync } from "@/hooks/useSync";
 import { DeviceLobby, type CallEntry } from "@/components/DeviceLobby";
 import { CallDiagnostics } from "@/components/CallDiagnostics";
 import { useProfile } from "@/lib/data";
 import { STREAMING_SERVICES, type RoomKind } from "@/lib/room";
+
 
 export const Route = createFileRoute("/room/$code")({
   validateSearch: (search: Record<string, unknown>): { kind: RoomKind } => ({
