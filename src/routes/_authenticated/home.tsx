@@ -1,14 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Clapperboard, Sparkles, Users } from "lucide-react";
+import { Clapperboard, Mail, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppHeader } from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { generateRoomCode, ROOM_KINDS, type RoomKind } from "@/lib/room";
-import { currentUserId, useMyRooms } from "@/lib/data";
+import { currentUserEmail, currentUserId, useMyInvites, useMyRooms } from "@/lib/data";
 
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
@@ -35,6 +35,7 @@ function Home() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: rooms, isLoading } = useMyRooms();
+  const { data: invites } = useMyInvites();
   const [name, setName] = useState("");
   const [kind, setKind] = useState<RoomKind>("friendship");
   const [joinCode, setJoinCode] = useState("");
@@ -100,6 +101,53 @@ function Home() {
     }
   };
 
+  const acceptInvite = async (inviteId: string, roomId: string) => {
+    setBusy(true);
+    try {
+      const uid = await currentUserId();
+      const email = await currentUserEmail();
+      if (!uid) throw new Error("Please sign in again.");
+      const { error: joinError } = await supabase
+        .from("room_members")
+        .upsert({ room_id: roomId, user_id: uid }, { onConflict: "room_id,user_id" });
+      if (joinError) throw joinError;
+      await supabase
+        .from("room_invites")
+        .update({ status: "accepted", accepted_at: new Date().toISOString(), accepted_by: uid })
+        .eq("id", inviteId);
+      if (email) {
+        await supabase
+          .from("room_invites")
+          .update({ status: "accepted", accepted_at: new Date().toISOString(), accepted_by: uid })
+          .eq("room_id", roomId)
+          .eq("status", "pending")
+          .ilike("email", email);
+      }
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["my-rooms"] }),
+        qc.invalidateQueries({ queryKey: ["my-invites"] }),
+      ]);
+      navigate({ to: "/rooms/$roomId", params: { roomId } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't join that room.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const declineInvite = async (inviteId: string) => {
+    const { error } = await supabase
+      .from("room_invites")
+      .update({ status: "declined" })
+      .eq("id", inviteId);
+    if (error) {
+      toast.error("Couldn't decline that invite.");
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["my-invites"] });
+    toast.success("Invitation declined.");
+  };
+
   return (
     <main className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute -left-32 -top-40 h-[28rem] w-[28rem] rounded-full bg-sunshine/50 blur-3xl" />
@@ -115,6 +163,48 @@ function Home() {
           Every room keeps its own bookshelf, photo album and watch history — for as many people as
           you like.
         </p>
+
+        {(invites ?? []).length > 0 && (
+          <div className="mt-8 rounded-3xl border-2 border-dashed border-primary/50 bg-card p-6">
+            <p className="flex items-center gap-2 font-display text-lg font-semibold">
+              <Mail className="h-5 w-5 text-primary" /> You're invited
+            </p>
+            <ul className="mt-4 space-y-3">
+              {(invites ?? []).map((invite) => (
+                <li
+                  key={invite.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-secondary px-4 py-3"
+                >
+                  <span className="min-w-0 text-sm">
+                    <span className="font-semibold">{invite.room?.name ?? "A room"}</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      — from {invite.inviter?.display_name ?? "a friend"}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      className="rounded-full"
+                      disabled={busy}
+                      onClick={() => acceptInvite(invite.id, invite.room_id)}
+                    >
+                      Join room
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-full"
+                      onClick={() => declineInvite(invite.id)}
+                    >
+                      Decline
+                    </Button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="mt-8 grid gap-4 md:grid-cols-[1.2fr_1fr]">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-playful">

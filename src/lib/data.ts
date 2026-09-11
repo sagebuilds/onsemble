@@ -170,3 +170,72 @@ export function usePhotos(roomId: string) {
     },
   });
 }
+
+export type RoomInvite = {
+  id: string;
+  room_id: string;
+  email: string;
+  invited_by: string;
+  status: string;
+  created_at: string;
+};
+
+export async function currentUserEmail() {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.email ?? null;
+}
+
+/** Pending invites sent from a room. */
+export function useRoomInvites(roomId: string) {
+  return useQuery({
+    queryKey: ["room-invites", roomId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("room_invites")
+        .select("id, room_id, email, invited_by, status, created_at")
+        .eq("room_id", roomId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as RoomInvite[];
+    },
+  });
+}
+
+/** Invites addressed to the signed-in user's email address. */
+export function useMyInvites() {
+  return useQuery({
+    queryKey: ["my-invites"],
+    queryFn: async () => {
+      const email = await currentUserEmail();
+      if (!email) return [];
+      const { data, error } = await supabase
+        .from("room_invites")
+        .select("id, room_id, email, invited_by, status, created_at")
+        .eq("status", "pending")
+        .ilike("email", email);
+      if (error) throw error;
+      const invites = (data ?? []) as RoomInvite[];
+      if (invites.length === 0) return [];
+      const { data: rooms } = await supabase
+        .from("rooms")
+        .select("id, name, kind, code")
+        .in(
+          "id",
+          invites.map((i) => i.room_id),
+        );
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in(
+          "id",
+          invites.map((i) => i.invited_by),
+        );
+      return invites.map((invite) => ({
+        ...invite,
+        room: (rooms ?? []).find((r) => r.id === invite.room_id) ?? null,
+        inviter: (profiles ?? []).find((p) => p.id === invite.invited_by) ?? null,
+      }));
+    },
+  });
+}

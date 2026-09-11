@@ -10,9 +10,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppHeader } from "@/components/AppHeader";
 import { Bookshelf } from "@/components/Bookshelf";
 import { PhotoAlbum } from "@/components/PhotoAlbum";
+import { RoomInvites } from "@/components/RoomInvites";
 import { supabase } from "@/integrations/supabase/client";
 import { STREAMING_SERVICES } from "@/lib/room";
-import { currentUserId, useRoom, useRoomMembers, useWatchHistory } from "@/lib/data";
+import {
+  currentUserId,
+  useRoom,
+  useRoomInvites,
+  useRoomMembers,
+  useWatchHistory,
+} from "@/lib/data";
 
 export const Route = createFileRoute("/_authenticated/rooms/$roomId")({
   head: () => ({
@@ -42,6 +49,7 @@ function RoomHub() {
   const { data: room, isLoading } = useRoom(roomId);
   const { data: members } = useRoomMembers(roomId);
   const { data: history } = useWatchHistory(roomId);
+  const { data: invites } = useRoomInvites(roomId);
   const [name, setName] = useState<string | null>(null);
 
   if (isLoading) {
@@ -165,6 +173,15 @@ function RoomHub() {
                   </AvatarFallback>
                 </Avatar>
               ))}
+              {(invites ?? []).map((invite) => (
+                <span
+                  key={invite.id}
+                  title={`${invite.email} — invited, not joined yet`}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-dashed border-border bg-muted text-xs font-semibold text-muted-foreground"
+                >
+                  {invite.email.slice(0, 1).toUpperCase()}
+                </span>
+              ))}
             </div>
             <Button size="lg" className="rounded-full" onClick={startNight}>
               <Play className="mr-1 h-5 w-5" /> Start movie night
@@ -272,7 +289,25 @@ function RoomHub() {
                       {m.profile?.display_name ?? "Friend"}
                     </li>
                   ))}
+                  {(invites ?? []).map((invite) => (
+                    <li
+                      key={invite.id}
+                      className="flex items-center gap-3 text-sm text-muted-foreground"
+                    >
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-border text-xs">
+                        {invite.email.slice(0, 1).toUpperCase()}
+                      </span>
+                      <span className="truncate">{invite.email}</span>
+                      <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest">
+                        Invited
+                      </span>
+                    </li>
+                  ))}
                 </ul>
+              </div>
+
+              <div className="mt-8 border-t border-border pt-6">
+                <RoomInvites roomId={roomId} roomName={room.name} code={room.code} />
               </div>
 
               <Button variant="ghost" className="mt-8 rounded-full" onClick={leaveRoom}>
