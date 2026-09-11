@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { VideoTile } from "@/components/VideoTile";
 import { useCall } from "@/hooks/useCall";
 import { useSync } from "@/hooks/useSync";
+import { DeviceLobby, type CallEntry } from "@/components/DeviceLobby";
 import { useProfile } from "@/lib/data";
 import { STREAMING_SERVICES, type RoomKind } from "@/lib/room";
 
@@ -55,6 +56,34 @@ function Room() {
   const { kind } = Route.useSearch();
   const navigate = useNavigate();
   const { data: profile } = useProfile();
+  const [entry, setEntry] = useState<CallEntry | null>(null);
+
+  /* Dim the lights as soon as we reach the room. */
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+    return () => document.documentElement.classList.remove("dark");
+  }, []);
+
+  if (!entry) {
+    return (
+      <DeviceLobby
+        roomLabel={kind === "date" ? "the Date Room" : "the Friendship Room"}
+        code={code}
+        displayName={profile?.display_name ?? "You"}
+        onJoin={setEntry}
+        onCancel={() => navigate({ to: "/" })}
+      />
+    );
+  }
+
+  return <Theater entry={entry} />;
+}
+
+function Theater({ entry }: { entry: CallEntry }) {
+  const { code } = Route.useParams();
+  const { kind } = Route.useSearch();
+  const navigate = useNavigate();
+  const { data: profile } = useProfile();
 
   const selfVideoRef = useRef<HTMLVideoElement>(null);
   const stageScreenRef = useRef<HTMLVideoElement>(null);
@@ -74,7 +103,7 @@ function Room() {
     toggleCamera,
     startShare,
     stopShare,
-  } = useCall(`${code}:${kind}`, profile?.display_name ?? "Guest");
+  } = useCall(`${code}:${kind}`, profile?.display_name ?? "Guest", entry);
 
   const { extensionInstalled, service: detectedService, lastEvent, syncActive } = useSync(
     `${code}:${kind}`,
