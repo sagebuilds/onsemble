@@ -125,6 +125,53 @@ function Theater({ entry }: { entry: CallEntry }) {
   const remoteSharer = peers.find((p) => p.screen)?.name ?? null;
   const stageStream = screenStream ?? remoteScreen;
 
+  /* Everyone on the call, self first, for the grid / speaker layouts. */
+  const participants = useMemo(
+    () => [
+      {
+        id: "self",
+        name: profile?.display_name ?? "You",
+        isSelf: true,
+        hue: "var(--electric)",
+        stream: localStream,
+        muted,
+        cameraOff,
+        connected: true,
+      },
+      ...peers.map((peer, i) => ({
+        id: peer.id,
+        name: peer.name,
+        isSelf: false,
+        hue: HUES[i % HUES.length] ?? "var(--electric)",
+        stream: peer.camera,
+        muted: peer.muted,
+        cameraOff: peer.cameraOff || !peer.camera,
+        connected: peer.connected,
+      })),
+    ],
+    [peers, localStream, muted, cameraOff, profile?.display_name],
+  );
+
+  const speakerSources = useMemo(
+    () => participants.map((p) => ({ id: p.id, stream: p.stream, muted: p.muted })),
+    [participants],
+  );
+  const activeSpeakerId = useActiveSpeaker(speakerSources);
+
+  /* Drop a pin if that person leaves the room. */
+  useEffect(() => {
+    if (pinnedId && !participants.some((p) => p.id === pinnedId)) setPinnedId(null);
+  }, [participants, pinnedId]);
+
+  const featured =
+    participants.find((p) => p.id === pinnedId) ??
+    participants.find((p) => p.id === activeSpeakerId) ??
+    participants.find((p) => !p.isSelf) ??
+    participants[0];
+  const others = participants.filter((p) => p.id !== featured?.id);
+  const togglePin = (id: string) => setPinnedId((cur) => (cur === id ? null : id));
+  const showPeopleOnStage = !!pinnedId || (!stageStream && participants.length > 1);
+
   /* Dim the lights: switch the whole app to theater mode. */
   useEffect(() => {
     document.documentElement.classList.add("dark");
