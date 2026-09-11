@@ -553,8 +553,27 @@ function Theater({ entry }: { entry: CallEntry }) {
                 onTogglePin={() => togglePin(peer.id)}
                 className={peer.connected ? "opacity-100" : "opacity-60"}
               />
+              {canModerate && !peer.verified && (
+                <div className="flex items-center justify-between gap-2 rounded-full border border-dashed border-border px-3 py-1.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Guest
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 rounded-full text-xs text-destructive"
+                    onClick={() => {
+                      removeParticipant(peer.id);
+                      toast.success(`${peer.name} was removed from the room.`);
+                    }}
+                  >
+                    <UserX className="mr-1 h-3.5 w-3.5" /> Remove
+                  </Button>
+                </div>
+              )}
               {peer.screen && <PeerScreen stream={peer.screen} name={peer.name} />}
             </div>
+
           ))}
 
           {peers.length === 0 && (
