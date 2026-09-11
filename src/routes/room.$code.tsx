@@ -103,6 +103,7 @@ function Theater({ entry }: { entry: CallEntry }) {
     toggleCamera,
     startShare,
     stopShare,
+    usingRelay,
   } = useCall(`${code}:${kind}`, profile?.display_name ?? "Guest", entry);
 
   const { extensionInstalled, service: detectedService, lastEvent, syncActive } = useSync(
@@ -196,8 +197,10 @@ function Theater({ entry }: { entry: CallEntry }) {
             label={
               !joined
                 ? "Connecting…"
-                : peers.length === 0
-                  ? "Waiting for friends…"
+                : usingRelay && peers.length > 0
+                  ? `${peers.length} friend${peers.length > 1 ? "s" : ""} · relayed`
+                  : peers.length === 0
+                    ? "Waiting for friends…"
                   : `${peers.length} friend${peers.length > 1 ? "s" : ""} in the room`
             }
             active={peers.length > 0}
