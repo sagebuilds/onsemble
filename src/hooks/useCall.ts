@@ -41,7 +41,15 @@ const newId = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
-export function useCall(roomKey: string, displayName: string) {
+export type CallDevices = {
+  videoDeviceId?: string | null;
+  audioDeviceId?: string | null;
+  startMuted?: boolean;
+  startCameraOff?: boolean;
+};
+
+export function useCall(roomKey: string, displayName: string, devices: CallDevices = {}) {
+  const devicesRef = useRef(devices);
   const idRef = useRef<string>("");
   if (!idRef.current) idRef.current = newId();
   const myId = idRef.current;
@@ -53,8 +61,8 @@ export function useCall(roomKey: string, displayName: string) {
   const screenRef = useRef<MediaStream | null>(null);
   const selfMetaRef = useRef<Meta>({
     name: displayName,
-    muted: false,
-    cameraOff: false,
+    muted: !!devices.startMuted,
+    cameraOff: !!devices.startCameraOff,
     screenId: null,
   });
 
@@ -63,8 +71,8 @@ export function useCall(roomKey: string, displayName: string) {
   const [peers, setPeers] = useState<CallPeer[]>([]);
   const [joined, setJoined] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
-  const [muted, setMuted] = useState(false);
-  const [cameraOff, setCameraOff] = useState(false);
+  const [muted, setMuted] = useState(!!devices.startMuted);
+  const [cameraOff, setCameraOff] = useState(!!devices.startCameraOff);
 
   const syncPeers = useCallback(() => {
     const list: CallPeer[] = [];
@@ -170,11 +178,18 @@ export function useCall(roomKey: string, displayName: string) {
 
     const start = async () => {
       try {
-        const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const chosen = devicesRef.current;
+        const media = await navigator.mediaDevices.getUserMedia({
+          video: chosen.videoDeviceId ? { deviceId: { exact: chosen.videoDeviceId } } : true,
+          audio: chosen.audioDeviceId ? { deviceId: { exact: chosen.audioDeviceId } } : true,
+        });
         if (cancelled) {
           media.getTracks().forEach((t) => t.stop());
           return;
         }
+        // Honour the choices made in the lobby.
+        media.getAudioTracks().forEach((t) => (t.enabled = !chosen.startMuted));
+        media.getVideoTracks().forEach((t) => (t.enabled = !chosen.startCameraOff));
         localRef.current = media;
         setLocalStream(media);
       } catch {
