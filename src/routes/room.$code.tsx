@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { VideoTile } from "@/components/VideoTile";
 import { useCall } from "@/hooks/useCall";
+import { useSync } from "@/hooks/useSync";
 import { useProfile } from "@/lib/data";
 import { STREAMING_SERVICES, type RoomKind } from "@/lib/room";
 
@@ -59,8 +60,7 @@ function Room() {
   const stageScreenRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const [dimming, setDimming] = useState(true);
-  const [service, setService] = useState<string | null>(null);
-  const [syncActive] = useState(false);
+  const [manualService, setManualService] = useState<string | null>(null);
 
   const {
     localStream,
@@ -75,6 +75,12 @@ function Room() {
     startShare,
     stopShare,
   } = useCall(`${code}:${kind}`, profile?.display_name ?? "Guest");
+
+  const { extensionInstalled, service: detectedService, lastEvent, syncActive } = useSync(
+    `${code}:${kind}`,
+    code,
+  );
+  const service = detectedService ?? manualService;
 
   const remoteScreen = peers.find((p) => p.screen)?.screen ?? null;
   const remoteSharer = peers.find((p) => p.screen)?.name ?? null;
