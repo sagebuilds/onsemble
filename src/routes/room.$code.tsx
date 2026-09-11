@@ -203,6 +203,18 @@ function Theater({ entry }: { entry: CallEntry }) {
     if (mediaError) toast(`${mediaError} You'll still see everyone else.`);
   }, [mediaError]);
 
+  /* We were removed by a member, or arrived after the room was locked. */
+  useEffect(() => {
+    if (!removedNotice) return;
+    toast.error(
+      removedNotice === "locked"
+        ? "This room is locked — no new people can join right now."
+        : "A member of this room removed you from the call.",
+    );
+    navigate({ to: "/" });
+  }, [removedNotice, navigate]);
+
+
   useEffect(() => {
     if (stageScreenRef.current) stageScreenRef.current.srcObject = stageStream;
   }, [stageStream]);
