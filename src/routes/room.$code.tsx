@@ -341,9 +341,31 @@ function Theater({ entry }: { entry: CallEntry }) {
             extensionInstalled={extensionInstalled}
             localStream={localStream}
           />
+          {canModerate ? (
+            <Button
+              variant={locked ? "destructive" : "secondary"}
+              className="rounded-full"
+              onClick={() => {
+                setRoomLocked(!locked);
+                toast.success(
+                  locked
+                    ? "Room unlocked — friends can join again."
+                    : "Room locked — nobody new can join.",
+                );
+              }}
+            >
+              {locked ? <Lock className="mr-1 h-4 w-4" /> : <LockOpen className="mr-1 h-4 w-4" />}
+              {locked ? "Locked" : "Lock room"}
+            </Button>
+          ) : (
+            locked && (
+              <StatusPill icon={<Lock className="h-3.5 w-3.5" />} label="Room locked" active />
+            )
+          )}
           <Button variant="secondary" className="rounded-full" onClick={copyLink}>
             <Copy className="mr-1 h-4 w-4" /> Invite
           </Button>
+
           <Button
             variant="ghost"
             className="rounded-full text-muted-foreground"
