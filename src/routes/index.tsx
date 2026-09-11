@@ -51,15 +51,15 @@ function Landing() {
       <div className="pointer-events-none absolute -right-24 top-24 h-[26rem] w-[26rem] rounded-full bg-bubblegum/40 blur-3xl" />
       <div className="pointer-events-none absolute bottom-[-12rem] left-1/3 h-[30rem] w-[30rem] rounded-full bg-electric/30 blur-3xl" />
 
-      <header className="relative mx-auto flex w-full max-w-6xl items-center justify-between px-8 py-7">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-joy shadow-playful">
+      <header className="relative mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-5 sm:px-8 sm:py-7">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-joy shadow-playful">
             <Popcorn className="h-5 w-5 text-primary-foreground" />
           </span>
           <span className="font-display text-2xl font-semibold tracking-tight">Onsemble</span>
         </div>
-        <nav className="flex items-center gap-6 text-sm font-semibold text-muted-foreground">
-          <span className="flex items-center gap-1.5">
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-muted-foreground sm:gap-6">
+          <span className="hidden items-center gap-1.5 sm:flex">
             <MonitorPlay className="h-4 w-4" /> Desktop only
           </span>
           <a href="/extension" className="transition-colors hover:text-foreground">
@@ -75,15 +75,15 @@ function Landing() {
 
       </header>
 
-      <section className="relative mx-auto grid w-full max-w-6xl grid-cols-[1.05fr_0.95fr] items-center gap-16 px-8 pb-24 pt-10">
+      <section className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pb-24 pt-6 sm:px-8 sm:pt-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 text-bubblegum" /> Long-distance movie nights
           </span>
-          <h1 className="mt-6 font-display text-6xl font-semibold leading-[1.05] tracking-tight">
+          <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl lg:leading-[1.05]">
             Press play <span className="text-joy">together</span>, even a thousand miles apart.
           </h1>
-          <p className="mt-5 max-w-lg text-lg text-muted-foreground">
+          <p className="mt-5 max-w-lg text-base text-muted-foreground sm:text-lg">
             Spin up a room, see each other's faces, and keep every stream perfectly in sync — on
             YouTube, Netflix, Disney+, Apple TV+ and Prime Video.
           </p>
