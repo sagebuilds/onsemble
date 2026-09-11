@@ -475,7 +475,9 @@ function Theater({ entry }: { entry: CallEntry }) {
             muted={muted}
             cameraOff={cameraOff}
             stream={localStream}
-            speaking={!muted}
+            speaking={!muted && activeSpeakerId === "self"}
+            pinned={pinnedId === "self"}
+            onTogglePin={() => togglePin("self")}
           />
 
           {screenStream && (
@@ -495,6 +497,9 @@ function Theater({ entry }: { entry: CallEntry }) {
                 muted={peer.muted}
                 cameraOff={peer.cameraOff || !peer.camera}
                 stream={peer.camera}
+                speaking={!peer.muted && activeSpeakerId === peer.id}
+                pinned={pinnedId === peer.id}
+                onTogglePin={() => togglePin(peer.id)}
                 className={peer.connected ? "opacity-100" : "opacity-60"}
               />
               {peer.screen && <PeerScreen stream={peer.screen} name={peer.name} />}
