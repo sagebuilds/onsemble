@@ -66,7 +66,7 @@ function Account() {
       <div className="pointer-events-none absolute -right-24 -top-32 h-[26rem] w-[26rem] rounded-full bg-electric/30 blur-3xl" />
       <AppHeader />
 
-      <section className="relative mx-auto w-full max-w-2xl px-8 pb-24">
+      <section className="relative mx-auto w-full max-w-2xl px-4 pb-24 sm:px-8">
         <h1 className="font-display text-4xl font-semibold tracking-tight">Your account</h1>
 
         <div className="mt-8 rounded-3xl border border-border bg-card p-8 shadow-playful">

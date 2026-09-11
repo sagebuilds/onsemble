@@ -107,14 +107,16 @@ function Home() {
 
       <AppHeader />
 
-      <section className="relative mx-auto w-full max-w-6xl px-8 pb-24">
-        <h1 className="font-display text-5xl font-semibold tracking-tight">Your rooms</h1>
-        <p className="mt-3 max-w-xl text-lg text-muted-foreground">
+      <section className="relative mx-auto w-full max-w-6xl px-4 pb-24 sm:px-8">
+        <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-5xl">
+          Your rooms
+        </h1>
+        <p className="mt-3 max-w-xl text-base text-muted-foreground sm:text-lg">
           Every room keeps its own bookshelf, photo album and watch history — for as many people as
           you like.
         </p>
 
-        <div className="mt-8 grid grid-cols-[1.2fr_1fr] gap-4">
+        <div className="mt-8 grid gap-4 md:grid-cols-[1.2fr_1fr]">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-playful">
             <p className="font-display text-lg font-semibold">Start a new room</p>
             <Input
@@ -189,7 +191,7 @@ function Home() {
               </p>
             </div>
           ) : (
-            <div className="mt-4 grid grid-cols-3 gap-4">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {(rooms ?? []).map((room) => (
                 <Link
                   key={room.id}
