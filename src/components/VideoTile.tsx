@@ -1,4 +1,4 @@
-import { Mic, MicOff, Video as VideoIcon, VideoOff } from "lucide-react";
+import { Mic, MicOff, Pin, PinOff, Video as VideoIcon, VideoOff } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { cn } from "@/lib/utils";
 
@@ -11,10 +11,23 @@ type Props = {
   speaking?: boolean;
   stream?: MediaStream | null;
   className?: string;
+  pinned?: boolean;
+  onTogglePin?: () => void;
 };
 
 export const VideoTile = forwardRef<HTMLVideoElement, Props>(function VideoTile(
-  { name, isSelf, muted, cameraOff, hue = "var(--electric)", speaking, stream, className },
+  {
+    name,
+    isSelf,
+    muted,
+    cameraOff,
+    hue = "var(--electric)",
+    speaking,
+    stream,
+    className,
+    pinned,
+    onTogglePin,
+  },
   ref,
 ) {
   const videoRef = useRef<HTMLVideoElement>(null);
