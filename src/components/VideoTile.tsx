@@ -42,11 +42,27 @@ export const VideoTile = forwardRef<HTMLVideoElement, Props>(function VideoTile(
   return (
     <div
       className={cn(
-        "relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-card transition-shadow",
+        "group relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-card transition-shadow",
         speaking && "shadow-neon",
+        pinned && "border-primary",
         className,
       )}
     >
+      {onTogglePin && (
+        <button
+          type="button"
+          onClick={onTogglePin}
+          aria-label={pinned ? `Unpin ${name}` : `Pin ${name}`}
+          className={cn(
+            "absolute right-2 top-2 z-10 rounded-full p-1.5 text-white backdrop-blur transition-opacity",
+            pinned
+              ? "bg-primary/80 opacity-100"
+              : "bg-black/50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+          )}
+        >
+          {pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+        </button>
+      )}
       <video
         ref={videoRef}
         autoPlay
