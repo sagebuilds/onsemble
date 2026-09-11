@@ -297,7 +297,74 @@ function Theater({ entry }: { entry: CallEntry }) {
       <section className="mx-auto grid w-full max-w-[110rem] grid-cols-[1fr_20rem] gap-6 px-8 pb-10">
         <div className="flex min-h-[34rem] flex-col overflow-hidden rounded-3xl border border-border bg-card/60">
           <div className="flex flex-1 items-center justify-center p-10">
-            {stageStream ? (
+            {showPeopleOnStage ? (
+              <div className="w-full">
+                {layout === "grid" ? (
+                  <div
+                    className={`grid gap-4 ${participants.length > 4 ? "grid-cols-3" : participants.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
+                  >
+                    {participants.map((p) => (
+                      <VideoTile
+                        key={p.id}
+                        name={p.name}
+                        isSelf={p.isSelf}
+                        hue={p.hue}
+                        muted={p.muted}
+                        cameraOff={p.cameraOff}
+                        stream={p.stream}
+                        speaking={!p.muted && activeSpeakerId === p.id}
+                        pinned={pinnedId === p.id}
+                        onTogglePin={() => togglePin(p.id)}
+                        className={p.connected ? "opacity-100" : "opacity-60"}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {featured && (
+                      <VideoTile
+                        key={featured.id}
+                        name={featured.name}
+                        isSelf={featured.isSelf}
+                        hue={featured.hue}
+                        muted={featured.muted}
+                        cameraOff={featured.cameraOff}
+                        stream={featured.stream}
+                        speaking={!featured.muted && activeSpeakerId === featured.id}
+                        pinned={pinnedId === featured.id}
+                        onTogglePin={() => togglePin(featured.id)}
+                      />
+                    )}
+                    {others.length > 0 && (
+                      <div className="flex gap-3 overflow-x-auto pb-1">
+                        {others.map((p) => (
+                          <VideoTile
+                            key={p.id}
+                            name={p.name}
+                            isSelf={p.isSelf}
+                            hue={p.hue}
+                            muted={p.muted}
+                            cameraOff={p.cameraOff}
+                            stream={p.stream}
+                            speaking={!p.muted && activeSpeakerId === p.id}
+                            pinned={pinnedId === p.id}
+                            onTogglePin={() => togglePin(p.id)}
+                            className="w-48 shrink-0"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <p className="mt-3 text-center text-sm text-muted-foreground">
+                  {pinnedId
+                    ? `Pinned ${featured?.name}${stageStream ? " — unpin to go back to the shared screen." : "."}`
+                    : layout === "grid"
+                      ? "Everyone at equal size."
+                      : "Whoever is talking takes the big frame."}
+                </p>
+              </div>
+            ) : stageStream ? (
               <div className="w-full">
                 <video
                   ref={stageScreenRef}
