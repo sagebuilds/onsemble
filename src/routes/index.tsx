@@ -60,9 +60,6 @@ function Landing() {
           <span className="font-display text-2xl font-semibold tracking-tight">Onsemble</span>
         </div>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-muted-foreground sm:gap-6">
-          <span className="hidden items-center gap-1.5 sm:flex">
-            <MonitorPlay className="h-4 w-4" /> Desktop only
-          </span>
           <a href="/extension" className="transition-colors hover:text-foreground">
             Chrome extension
           </a>
