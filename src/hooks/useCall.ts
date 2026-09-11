@@ -210,6 +210,19 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
     let cancelled = false;
 
     const start = async () => {
+      // Pick up relay (TURN) credentials before any peer connection is created.
+      try {
+        const config = await getIceServers();
+        if (!cancelled && config?.iceServers?.length) {
+          iceRef.current = { iceServers: config.iceServers };
+          relayAvailableRef.current = config.hasRelay;
+          setRelayAvailable(config.hasRelay);
+        }
+      } catch {
+        /* fall back to the default STUN-only configuration */
+      }
+      if (cancelled) return;
+
       try {
         const chosen = devicesRef.current;
         const media = await navigator.mediaDevices.getUserMedia({
