@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Clapperboard, Popcorn, Sparkles, MonitorPlay, Users, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { SiteFooter } from "@/components/SiteFooter";
 import { generateRoomCode, ROOM_KINDS, type RoomKind } from "@/lib/room";
 import { toast } from "sonner";
+import { useSession } from "@/hooks/useSession";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,6 +32,7 @@ function Landing() {
   const navigate = useNavigate();
   const [kind, setKind] = useState<RoomKind>("friendship");
   const [joinCode, setJoinCode] = useState("");
+  const { isAuthenticated, loading: sessionLoading } = useSession();
 
   const createRoom = () => {
     const code = generateRoomCode();
@@ -60,15 +62,31 @@ function Landing() {
           <span className="font-display text-2xl font-semibold tracking-tight">Onsemble</span>
         </div>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-muted-foreground sm:gap-6">
-          <a href="/extension" className="transition-colors hover:text-foreground">
+          <Link to="/extension" className="transition-colors hover:text-foreground">
             Chrome extension
-          </a>
-          <a
-            href="/home"
-            className="rounded-full bg-joy px-4 py-2 text-primary-foreground shadow-playful transition-transform hover:scale-105"
-          >
-            Sign in
-          </a>
+          </Link>
+          {sessionLoading ? (
+            <span className="h-9 w-24 animate-pulse rounded-full bg-card" aria-hidden />
+          ) : isAuthenticated ? (
+            <>
+              <Link to="/account" className="transition-colors hover:text-foreground">
+                Account
+              </Link>
+              <Link
+                to="/home"
+                className="rounded-full bg-joy px-4 py-2 text-primary-foreground shadow-playful transition-transform hover:scale-105"
+              >
+                My rooms
+              </Link>
+            </>
+          ) : (
+            <Link
+              to="/auth"
+              className="rounded-full bg-joy px-4 py-2 text-primary-foreground shadow-playful transition-transform hover:scale-105"
+            >
+              Sign in
+            </Link>
+          )}
         </nav>
 
       </header>
