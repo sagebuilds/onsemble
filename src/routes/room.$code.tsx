@@ -93,6 +93,7 @@ function Theater({ entry }: { entry: CallEntry }) {
   const { kind } = Route.useSearch();
   const navigate = useNavigate();
   const { data: profile } = useProfile();
+  const { session } = useSession();
 
   const selfVideoRef = useRef<HTMLVideoElement>(null);
   const stageScreenRef = useRef<HTMLVideoElement>(null);
@@ -101,6 +102,11 @@ function Theater({ entry }: { entry: CallEntry }) {
   const [manualService, setManualService] = useState<string | null>(null);
   const [layout, setLayout] = useState<"speaker" | "grid">("speaker");
   const [pinnedId, setPinnedId] = useState<string | null>(null);
+
+  const identity = useMemo(
+    () => ({ userId: session?.user?.id ?? null, verified: !!session }),
+    [session],
+  );
 
   const {
     localStream,
@@ -116,7 +122,13 @@ function Theater({ entry }: { entry: CallEntry }) {
     stopShare,
     usingRelay,
     relayAvailable,
-  } = useCall(`${code}:${kind}`, profile?.display_name ?? "Guest", entry);
+    locked,
+    setRoomLocked,
+    removeParticipant,
+    removedNotice,
+    canModerate,
+  } = useCall(`${code}:${kind}`, profile?.display_name ?? "Guest", entry, identity);
+
 
   const {
     extensionInstalled,
