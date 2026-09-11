@@ -95,7 +95,7 @@ function Landing() {
                 <button
                   key={option.id}
                   onClick={() => setKind(option.id)}
-                  className={`flex w-56 flex-col items-start gap-1 rounded-3xl border-2 p-4 text-left transition-all ${
+                  className={`flex w-full flex-col items-start gap-1 rounded-3xl border-2 p-4 text-left transition-all sm:w-56 ${
                     active
                       ? "border-primary bg-card shadow-playful"
                       : "border-transparent bg-card/70 hover:border-border"
@@ -120,7 +120,7 @@ function Landing() {
                 onKeyDown={(e) => e.key === "Enter" && joinRoom()}
                 placeholder="ROOM CODE"
                 maxLength={8}
-                className="h-9 w-36 border-0 bg-transparent px-0 font-display text-base tracking-[0.25em] shadow-none focus-visible:ring-0"
+                className="h-9 w-28 min-w-0 border-0 bg-transparent px-0 font-display text-base tracking-[0.25em] shadow-none focus-visible:ring-0 sm:w-36"
               />
               <Button variant="secondary" className="rounded-full" onClick={joinRoom}>
                 Join
@@ -128,7 +128,7 @@ function Landing() {
             </div>
           </div>
 
-          <div className="mt-10 flex items-center gap-6 text-sm text-muted-foreground">
+          <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
             <span className="flex items-center gap-2">
               <Users className="h-4 w-4 text-electric" /> Live video chat
             </span>
