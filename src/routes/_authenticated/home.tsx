@@ -140,7 +140,10 @@ function Home() {
       .from("room_invites")
       .update({ status: "declined" })
       .eq("id", inviteId);
-    if (error) return toast.error("Couldn't decline that invite.");
+    if (error) {
+      toast.error("Couldn't decline that invite.");
+      return;
+    }
     await qc.invalidateQueries({ queryKey: ["my-invites"] });
     toast.success("Invitation declined.");
   };

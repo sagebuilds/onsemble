@@ -81,7 +81,10 @@ export function RoomInvites({
 
   const cancelInvite = async (id: string) => {
     const { error: deleteError } = await supabase.from("room_invites").delete().eq("id", id);
-    if (deleteError) return toast.error("Couldn't cancel that invite.");
+    if (deleteError) {
+      toast.error("Couldn't cancel that invite.");
+      return;
+    }
     await qc.invalidateQueries({ queryKey: ["room-invites", roomId] });
     toast.success("Invite cancelled.");
   };
