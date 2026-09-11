@@ -15,6 +15,13 @@ export type CallPeer = {
   camera: MediaStream | null;
   screen: MediaStream | null;
   connected: boolean;
+  /* diagnostics */
+  connectionState: RTCPeerConnectionState | "new";
+  iceState: RTCIceConnectionState | "new";
+  route: "direct" | "relayed" | null;
+  relayRetried: boolean;
+  hasAudio: boolean;
+  hasVideo: boolean;
 };
 
 type Meta = { name: string; muted: boolean; cameraOff: boolean; screenId: string | null };
@@ -26,6 +33,7 @@ type PeerConn = {
   ignoreOffer: boolean;
   streams: Map<string, MediaStream>;
   connected: boolean;
+  route: "direct" | "relayed" | null;
 };
 
 type SignalPayload = {
@@ -95,6 +103,12 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
         camera,
         screen,
         connected: conn?.connected ?? false,
+        connectionState: conn?.pc.connectionState ?? "new",
+        iceState: conn?.pc.iceConnectionState ?? "new",
+        route: conn?.route ?? null,
+        relayRetried: relayOnlyRef.current.has(id),
+        hasAudio: !!camera?.getAudioTracks().length,
+        hasVideo: !!camera?.getVideoTracks().length,
       });
     }
     setPeers(list);
@@ -125,8 +139,10 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
         ignoreOffer: false,
         streams: new Map(),
         connected: false,
+        route: null,
       };
       peersRef.current.set(remoteId, entry);
+      pc.oniceconnectionstatechange = () => syncPeers();
 
       for (const track of localRef.current?.getTracks() ?? [])
         pc.addTrack(track, localRef.current!);
@@ -316,6 +332,41 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomKey]);
 
+  /* Work out whether each connection is direct or going through a relay. */
+  useEffect(() => {
+    const timer = setInterval(() => {
+      void (async () => {
+        let changed = false;
+        for (const entry of peersRef.current.values()) {
+          if (entry.pc.connectionState !== "connected") continue;
+          try {
+            const stats = await entry.pc.getStats();
+            let route: "direct" | "relayed" | null = null;
+            stats.forEach((report) => {
+              if (report.type === "candidate-pair" && report["state"] === "succeeded") {
+                const local = stats.get(report["localCandidateId"]);
+                const remote = stats.get(report["remoteCandidateId"]);
+                route =
+                  local?.candidateType === "relay" || remote?.candidateType === "relay"
+                    ? "relayed"
+                    : "direct";
+              }
+            });
+            if (route && route !== entry.route) {
+              entry.route = route;
+              changed = true;
+              if (route === "relayed") setUsingRelay(true);
+            }
+          } catch {
+            /* stats are best-effort */
+          }
+        }
+        if (changed) syncPeers();
+      })();
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [syncPeers]);
+
   /* Keep the name we advertise in sync. */
   useEffect(() => {
     selfMetaRef.current = { ...selfMetaRef.current, name: displayName };
@@ -384,5 +435,6 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
     stopShare,
     relayAvailable,
     usingRelay,
+    iceServerCount: iceRef.current.iceServers?.length ?? 0,
   };
 }
