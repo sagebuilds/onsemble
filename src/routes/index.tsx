@@ -1,8 +1,9 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Clapperboard, Popcorn, Sparkles, MonitorPlay, Users, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SiteFooter } from "@/components/SiteFooter";
 import { generateRoomCode, ROOM_KINDS, type RoomKind } from "@/lib/room";
 import { toast } from "sonner";
 
@@ -75,7 +76,10 @@ function Landing() {
 
       </header>
 
-      <section className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pb-24 pt-6 sm:px-8 sm:pt-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+      <section
+        id="create"
+        className="relative mx-auto grid w-full max-w-6xl scroll-mt-24 items-center gap-10 px-4 pb-24 pt-6 sm:px-8 sm:pt-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16"
+      >
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 text-bubblegum" /> Long-distance movie nights
@@ -178,20 +182,7 @@ function Landing() {
         </div>
       </section>
 
-      <footer className="relative mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 pb-10 text-sm text-muted-foreground sm:px-8">
-        <span>© {new Date().getFullYear()} Onsemble</span>
-        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 font-semibold">
-          <Link to="/terms" className="hover:text-foreground">
-            Terms of Service
-          </Link>
-          <Link to="/privacy" className="hover:text-foreground">
-            Privacy Policy
-          </Link>
-          <Link to="/extension" className="hover:text-foreground">
-            Chrome extension
-          </Link>
-        </nav>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
