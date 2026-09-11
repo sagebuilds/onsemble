@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
@@ -30,6 +31,44 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const emailSchema = z
+  .string()
+  .trim()
+  .min(1, "Enter your email address.")
+  .email("That doesn't look like a valid email address.")
+  .max(255, "That email is too long.");
+
+const passwordSchema = z
+  .string()
+  .min(6, "Passwords need at least 6 characters.")
+  .max(72, "Passwords can be at most 72 characters.");
+
+const nameSchema = z.string().trim().max(60, "Please use 60 characters or fewer.");
+
+/** Turns backend auth errors into something a person can act on. */
+function friendlyAuthError(message: string, mode: "signin" | "signup") {
+  const m = message.toLowerCase();
+  if (m.includes("invalid login credentials"))
+    return "That email and password don't match. Check them and try again.";
+  if (m.includes("email not confirmed"))
+    return "Please confirm your email first — check your inbox for the link we sent.";
+  if (m.includes("user already registered") || m.includes("already been registered"))
+    return "There's already an account with that email. Try signing in instead.";
+  if (m.includes("password") && m.includes("should be"))
+    return "Please choose a longer, stronger password.";
+  if (m.includes("pwned") || m.includes("compromised"))
+    return "That password has shown up in a data breach. Please pick a different one.";
+  if (m.includes("rate limit") || m.includes("too many"))
+    return "Too many attempts just now. Wait a minute and try again.";
+  if (m.includes("failed to fetch") || m.includes("network"))
+    return "We couldn't reach Onsemble. Check your connection and try again.";
+  if (m.includes("signups not allowed") || m.includes("signup is disabled"))
+    return "New sign-ups are turned off right now.";
+  return mode === "signup"
+    ? "We couldn't create your account. Please try again."
+    : "We couldn't sign you in. Please try again.";
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -38,41 +77,75 @@ function AuthPage() {
   const [displayName, setDisplayName] = useState("");
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    name?: string;
+    age?: string;
+  }>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/home" });
     });
+    if (typeof window !== "undefined" && sessionStorage.getItem("onsemble.sessionExpired")) {
+      sessionStorage.removeItem("onsemble.sessionExpired");
+      setNotice("Your session ended, so we signed you out. Sign in again to pick up where you left off.");
+    }
   }, [navigate]);
+
+  const validate = () => {
+    const next: typeof errors = {};
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) next.email = emailResult.error.issues[0]?.message;
+    const passwordResult = passwordSchema.safeParse(password);
+    if (!passwordResult.success) next.password = passwordResult.error.issues[0]?.message;
+    if (mode === "signup") {
+      const nameResult = nameSchema.safeParse(displayName);
+      if (!nameResult.success) next.name = nameResult.error.issues[0]?.message;
+      if (!ageConfirmed) next.age = "Please confirm you are at least 18 to continue.";
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === "signup" && !ageConfirmed) {
-      toast.error("Please confirm you are at least 18 to continue.");
-      return;
-    }
+    setFormError(null);
+    setNotice(null);
+    if (!validate()) return;
     setBusy(true);
     try {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/home`,
-            data: { display_name: displayName || email.split("@")[0] },
+            data: { display_name: displayName.trim() || email.trim().split("@")[0] },
           },
         });
         if (error) throw error;
         toast.success("Account created — welcome to Onsemble!");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
         if (error) throw error;
       }
       const { data } = await supabase.auth.getSession();
       if (data.session) navigate({ to: "/home" });
-      else toast("Check your inbox to confirm your email, then sign in.");
+      else {
+        setNotice("Check your inbox to confirm your email, then sign in.");
+        toast("Check your inbox to confirm your email, then sign in.");
+      }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong.");
+      const friendly = friendlyAuthError(err instanceof Error ? err.message : "", mode);
+      setFormError(friendly);
+      toast.error(friendly);
     } finally {
       setBusy(false);
     }
@@ -80,13 +153,15 @@ function AuthPage() {
 
   const google = async () => {
     if (mode === "signup" && !ageConfirmed) {
-      toast.error("Please confirm you are at least 18 to continue.");
+      setErrors((prev) => ({ ...prev, age: "Please confirm you are at least 18 to continue." }));
       return;
     }
+    setFormError(null);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
     if (result.error) {
+      setFormError("Google sign-in didn't work. Try again, or use your email and password.");
       toast.error("Google sign-in didn't work. Try again.");
       return;
     }
@@ -114,7 +189,21 @@ function AuthPage() {
           Saved rooms keep your bookshelf, photos and watch history in one place.
         </p>
 
-        <form onSubmit={submit} className="mt-6 space-y-4">
+        {notice && (
+          <div className="mt-5 rounded-xl border border-border bg-muted/50 p-3 text-sm text-foreground">
+            {notice}
+          </div>
+        )}
+        {formError && (
+          <div
+            role="alert"
+            className="mt-5 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+          >
+            {formError}
+          </div>
+        )}
+
+        <form onSubmit={submit} noValidate className="mt-6 space-y-4">
           {mode === "signup" && (
             <div className="space-y-1.5">
               <Label htmlFor="name">Your name</Label>
@@ -123,8 +212,10 @@ function AuthPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Sage"
+                aria-invalid={!!errors.name}
                 className="rounded-xl"
               />
+              {errors.name && <p className="text-xs font-medium text-destructive">{errors.name}</p>}
             </div>
           )}
           <div className="space-y-1.5">
@@ -132,37 +223,74 @@ function AuthPage() {
             <Input
               id="email"
               type="email"
-              required
+              autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+              }}
+              onBlur={() => {
+                const r = emailSchema.safeParse(email);
+                setErrors((prev) => ({
+                  ...prev,
+                  email: email ? (r.success ? undefined : r.error.issues[0]?.message) : prev.email,
+                }));
+              }}
+              aria-invalid={!!errors.email}
               className="rounded-xl"
             />
+            {errors.email && <p className="text-xs font-medium text-destructive">{errors.email}</p>}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
-              required
-              minLength={6}
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+              }}
+              aria-invalid={!!errors.password}
               className="rounded-xl"
             />
+            {errors.password && (
+              <p className="text-xs font-medium text-destructive">{errors.password}</p>
+            )}
+            {mode === "signup" && !errors.password && (
+              <p className="text-xs text-muted-foreground">At least 6 characters.</p>
+            )}
           </div>
           {mode === "signup" && (
             <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-3 text-sm">
               <Checkbox
                 checked={ageConfirmed}
-                onCheckedChange={(v) => setAgeConfirmed(v === true)}
+                onCheckedChange={(v) => {
+                  setAgeConfirmed(v === true);
+                  if (v === true) setErrors((prev) => ({ ...prev, age: undefined }));
+                }}
                 className="mt-0.5"
                 aria-label="I confirm I am at least 18"
               />
-              <span className="leading-snug">I confirm I am at least 18</span>
+              <span className="leading-snug">
+                I confirm I am at least 18
+                {errors.age && (
+                  <span className="mt-1 block text-xs font-medium text-destructive">
+                    {errors.age}
+                  </span>
+                )}
+              </span>
             </label>
           )}
           <Button type="submit" disabled={busy || (mode === "signup" && !ageConfirmed)} className="w-full rounded-full" size="lg">
-            {mode === "signin" ? "Sign in" : "Create account"}
+            {busy
+              ? mode === "signin"
+                ? "Signing in…"
+                : "Creating account…"
+              : mode === "signin"
+                ? "Sign in"
+                : "Create account"}
           </Button>
         </form>
 
@@ -183,6 +311,8 @@ function AuthPage() {
           type="button"
           onClick={() => {
             setAgeConfirmed(false);
+            setErrors({});
+            setFormError(null);
             setMode(mode === "signin" ? "signup" : "signin");
           }}
           className="mt-6 w-full text-sm font-semibold text-primary hover:underline"
