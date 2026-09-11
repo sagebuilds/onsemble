@@ -94,6 +94,8 @@ function Theater({ entry }: { entry: CallEntry }) {
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const [dimming, setDimming] = useState(true);
   const [manualService, setManualService] = useState<string | null>(null);
+  const [layout, setLayout] = useState<"speaker" | "grid">("speaker");
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
 
   const {
     localStream,
