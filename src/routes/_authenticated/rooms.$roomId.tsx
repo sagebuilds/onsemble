@@ -125,13 +125,13 @@ function RoomHub() {
       <div className="pointer-events-none absolute -left-32 -top-40 h-[26rem] w-[26rem] rounded-full bg-mint/40 blur-3xl" />
       <AppHeader />
 
-      <section className="relative mx-auto w-full max-w-6xl px-8 pb-24">
-        <div className="flex items-start justify-between gap-6">
-          <div>
+      <section className="relative mx-auto w-full max-w-6xl px-4 pb-24 sm:px-8">
+        <div className="flex flex-wrap items-start justify-between gap-4 sm:gap-6">
+          <div className="min-w-0">
             <span className="text-3xl">{room.kind === "date" ? "💞" : "🍿"}</span>
             {name === null ? (
               <h1
-                className="mt-1 cursor-text font-display text-5xl font-semibold tracking-tight"
+                className="mt-1 cursor-text font-display text-3xl font-semibold tracking-tight sm:text-5xl"
                 onDoubleClick={() => setName(room.name)}
                 title="Double-click to rename"
               >

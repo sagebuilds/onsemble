@@ -234,7 +234,7 @@ function Theater({ entry }: { entry: CallEntry }) {
     <main className="relative min-h-screen bg-theater">
       {dimming && <div className="dim-overlay" />}
 
-      <header className="mx-auto flex w-full max-w-[110rem] items-center justify-between px-8 py-5">
+      <header className="mx-auto flex w-full max-w-[110rem] flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-4 sm:px-8 sm:py-5">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15">
             <Popcorn className="h-4.5 w-4.5 text-primary" />
@@ -325,7 +325,7 @@ function Theater({ entry }: { entry: CallEntry }) {
         </div>
       </header>
 
-      <section className="mx-auto grid w-full max-w-[110rem] grid-cols-[1fr_20rem] gap-6 px-8 pb-10">
+      <section className="mx-auto grid w-full max-w-[110rem] gap-6 px-4 pb-10 sm:px-8 lg:grid-cols-[1fr_20rem]">
         <div className="flex min-h-[34rem] flex-col overflow-hidden rounded-3xl border border-border bg-card/60">
           <div className="flex flex-1 items-center justify-center p-10">
             {showPeopleOnStage ? (
