@@ -33,7 +33,7 @@ function Terms() {
       <section>
         <h2>1. Who can use Onsemble</h2>
         <p>
-          You must be at least 13 years old, and old enough to form a binding contract where you
+          You must be at least 18 years old, and old enough to form a binding contract where you
           live. If you use Onsemble on behalf of an organisation, you confirm you're allowed to
           accept these terms for it.
         </p>

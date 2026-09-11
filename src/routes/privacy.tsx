@@ -123,7 +123,7 @@ function Privacy() {
 
       <section>
         <h2>Children</h2>
-        <p>Onsemble isn't intended for children under 13, and we don't knowingly collect their data.</p>
+        <p>Onsemble isn't intended for anyone under 18, and we don't knowingly collect their data.</p>
       </section>
 
       <section>
