@@ -123,8 +123,11 @@ export function DeviceLobby({ roomLabel, code, displayName, onJoin, onCancel }: 
     [stop],
   );
 
+  openPreviewRef.current = openPreview;
+
   useEffect(() => {
-    void openPreview("", "");
+    const saved = readPrefs();
+    void openPreview(saved.videoDeviceId ?? "", saved.audioDeviceId ?? "");
     return stop;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
