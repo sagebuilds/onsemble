@@ -27,6 +27,29 @@ type Props = {
 
 type Status = "requesting" | "ready" | "denied" | "missing";
 
+const STORE_KEY = "onsemble.devicePrefs";
+
+type StoredPrefs = { videoDeviceId?: string; audioDeviceId?: string };
+
+function readPrefs(): StoredPrefs {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(STORE_KEY);
+    return raw ? (JSON.parse(raw) as StoredPrefs) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePrefs(prefs: StoredPrefs) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORE_KEY, JSON.stringify(prefs));
+  } catch {
+    /* storage unavailable — remembering devices is best effort */
+  }
+}
+
 export function DeviceLobby({ roomLabel, code, displayName, onJoin, onCancel }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
