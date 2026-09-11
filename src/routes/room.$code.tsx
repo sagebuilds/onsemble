@@ -441,7 +441,7 @@ function Theater({ entry }: { entry: CallEntry }) {
             )}
           </div>
 
-          <div className="flex items-center justify-between border-t border-border px-6 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-4 sm:px-6">
             <div className="flex items-center gap-2">
               {STREAMING_SERVICES.map((s) => (
                 <button
