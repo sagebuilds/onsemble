@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Clapperboard, Popcorn, Sparkles, MonitorPlay, Users, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
