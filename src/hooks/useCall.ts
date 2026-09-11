@@ -41,7 +41,15 @@ const newId = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
-export function useCall(roomKey: string, displayName: string) {
+export type CallDevices = {
+  videoDeviceId?: string | null;
+  audioDeviceId?: string | null;
+  startMuted?: boolean;
+  startCameraOff?: boolean;
+};
+
+export function useCall(roomKey: string, displayName: string, devices: CallDevices = {}) {
+  const devicesRef = useRef(devices);
   const idRef = useRef<string>("");
   if (!idRef.current) idRef.current = newId();
   const myId = idRef.current;
