@@ -85,6 +85,7 @@ function AuthPage() {
   }>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -109,6 +110,34 @@ function AuthPage() {
     }
     setErrors(next);
     return Object.keys(next).length === 0;
+  };
+
+  const sendReset = async () => {
+    setFormError(null);
+    setNotice(null);
+    const parsed = emailSchema.safeParse(email);
+    if (!parsed.success) {
+      setErrors((prev) => ({
+        ...prev,
+        email: "Enter your email address first, then tap “Forgot password?”.",
+      }));
+      return;
+    }
+    setResetting(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setNotice(`If an account exists for ${parsed.data}, a reset link is on its way. Check your inbox.`);
+      toast.success("Reset link sent — check your email.");
+    } catch (err) {
+      const friendly = friendlyAuthError(err instanceof Error ? err.message : "", "signin");
+      setFormError(friendly);
+      toast.error(friendly);
+    } finally {
+      setResetting(false);
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -242,7 +271,19 @@ function AuthPage() {
             {errors.email && <p className="text-xs font-medium text-destructive">{errors.email}</p>}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="password">Password</Label>
+              {mode === "signin" && (
+                <button
+                  type="button"
+                  disabled={resetting}
+                  onClick={sendReset}
+                  className="text-xs font-medium text-primary underline-offset-2 hover:underline disabled:opacity-60"
+                >
+                  {resetting ? "Sending…" : "Forgot password?"}
+                </button>
+              )}
+            </div>
             <Input
               id="password"
               type="password"
