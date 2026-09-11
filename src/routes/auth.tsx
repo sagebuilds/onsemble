@@ -78,10 +78,10 @@ function AuthPage() {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<{
-    email?: string;
-    password?: string;
-    name?: string;
-    age?: string;
+    email?: string | undefined;
+    password?: string | undefined;
+    name?: string | undefined;
+    age?: string | undefined;
   }>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
