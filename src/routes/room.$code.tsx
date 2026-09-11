@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy,
+  LayoutGrid,
+  Maximize2,
   LogOut,
   Mic,
   MicOff,
@@ -20,6 +22,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { VideoTile } from "@/components/VideoTile";
 import { useCall } from "@/hooks/useCall";
+import { useActiveSpeaker } from "@/hooks/useActiveSpeaker";
 import { useSync } from "@/hooks/useSync";
 import { DeviceLobby, type CallEntry } from "@/components/DeviceLobby";
 import { CallDiagnostics } from "@/components/CallDiagnostics";
@@ -91,6 +94,8 @@ function Theater({ entry }: { entry: CallEntry }) {
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const [dimming, setDimming] = useState(true);
   const [manualService, setManualService] = useState<string | null>(null);
+  const [layout, setLayout] = useState<"speaker" | "grid">("speaker");
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
 
   const {
     localStream,
@@ -119,6 +124,53 @@ function Theater({ entry }: { entry: CallEntry }) {
   const remoteScreen = peers.find((p) => p.screen)?.screen ?? null;
   const remoteSharer = peers.find((p) => p.screen)?.name ?? null;
   const stageStream = screenStream ?? remoteScreen;
+
+  /* Everyone on the call, self first, for the grid / speaker layouts. */
+  const participants = useMemo(
+    () => [
+      {
+        id: "self",
+        name: profile?.display_name ?? "You",
+        isSelf: true,
+        hue: "var(--electric)",
+        stream: localStream,
+        muted,
+        cameraOff,
+        connected: true,
+      },
+      ...peers.map((peer, i) => ({
+        id: peer.id,
+        name: peer.name,
+        isSelf: false,
+        hue: HUES[i % HUES.length] ?? "var(--electric)",
+        stream: peer.camera,
+        muted: peer.muted,
+        cameraOff: peer.cameraOff || !peer.camera,
+        connected: peer.connected,
+      })),
+    ],
+    [peers, localStream, muted, cameraOff, profile?.display_name],
+  );
+
+  const speakerSources = useMemo(
+    () => participants.map((p) => ({ id: p.id, stream: p.stream, muted: p.muted })),
+    [participants],
+  );
+  const activeSpeakerId = useActiveSpeaker(speakerSources);
+
+  /* Drop a pin if that person leaves the room. */
+  useEffect(() => {
+    if (pinnedId && !participants.some((p) => p.id === pinnedId)) setPinnedId(null);
+  }, [participants, pinnedId]);
+
+  const featured =
+    participants.find((p) => p.id === pinnedId) ??
+    participants.find((p) => p.id === activeSpeakerId) ??
+    participants.find((p) => !p.isSelf) ??
+    participants[0];
+  const others = participants.filter((p) => p.id !== featured?.id);
+  const togglePin = (id: string) => setPinnedId((cur) => (cur === id ? null : id));
+  const showPeopleOnStage = !!pinnedId || (!stageStream && participants.length > 1);
 
   /* Dim the lights: switch the whole app to theater mode. */
   useEffect(() => {
@@ -220,6 +272,37 @@ function Theater({ entry }: { entry: CallEntry }) {
             }
             active={syncActive}
           />
+          <div className="flex items-center gap-1 rounded-full border border-border bg-secondary p-1">
+            <button
+              type="button"
+              onClick={() => setLayout("speaker")}
+              aria-pressed={layout === "speaker"}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                layout === "speaker" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <Maximize2 className="h-3.5 w-3.5" /> Speaker
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayout("grid")}
+              aria-pressed={layout === "grid"}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                layout === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Grid
+            </button>
+          </div>
+          {pinnedId && (
+            <Button
+              variant="secondary"
+              className="rounded-full"
+              onClick={() => setPinnedId(null)}
+            >
+              Unpin
+            </Button>
+          )}
           <CallDiagnostics
             peers={peers}
             joined={joined}
@@ -245,7 +328,74 @@ function Theater({ entry }: { entry: CallEntry }) {
       <section className="mx-auto grid w-full max-w-[110rem] grid-cols-[1fr_20rem] gap-6 px-8 pb-10">
         <div className="flex min-h-[34rem] flex-col overflow-hidden rounded-3xl border border-border bg-card/60">
           <div className="flex flex-1 items-center justify-center p-10">
-            {stageStream ? (
+            {showPeopleOnStage ? (
+              <div className="w-full">
+                {layout === "grid" ? (
+                  <div
+                    className={`grid gap-4 ${participants.length > 4 ? "grid-cols-3" : participants.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
+                  >
+                    {participants.map((p) => (
+                      <VideoTile
+                        key={p.id}
+                        name={p.name}
+                        isSelf={p.isSelf}
+                        hue={p.hue}
+                        muted={p.muted}
+                        cameraOff={p.cameraOff}
+                        stream={p.stream}
+                        speaking={!p.muted && activeSpeakerId === p.id}
+                        pinned={pinnedId === p.id}
+                        onTogglePin={() => togglePin(p.id)}
+                        className={p.connected ? "opacity-100" : "opacity-60"}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {featured && (
+                      <VideoTile
+                        key={featured.id}
+                        name={featured.name}
+                        isSelf={featured.isSelf}
+                        hue={featured.hue}
+                        muted={featured.muted}
+                        cameraOff={featured.cameraOff}
+                        stream={featured.stream}
+                        speaking={!featured.muted && activeSpeakerId === featured.id}
+                        pinned={pinnedId === featured.id}
+                        onTogglePin={() => togglePin(featured.id)}
+                      />
+                    )}
+                    {others.length > 0 && (
+                      <div className="flex gap-3 overflow-x-auto pb-1">
+                        {others.map((p) => (
+                          <VideoTile
+                            key={p.id}
+                            name={p.name}
+                            isSelf={p.isSelf}
+                            hue={p.hue}
+                            muted={p.muted}
+                            cameraOff={p.cameraOff}
+                            stream={p.stream}
+                            speaking={!p.muted && activeSpeakerId === p.id}
+                            pinned={pinnedId === p.id}
+                            onTogglePin={() => togglePin(p.id)}
+                            className="w-48 shrink-0"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <p className="mt-3 text-center text-sm text-muted-foreground">
+                  {pinnedId
+                    ? `Pinned ${featured?.name}${stageStream ? " — unpin to go back to the shared screen." : "."}`
+                    : layout === "grid"
+                      ? "Everyone at equal size."
+                      : "Whoever is talking takes the big frame."}
+                </p>
+              </div>
+            ) : stageStream ? (
               <div className="w-full">
                 <video
                   ref={stageScreenRef}
@@ -325,7 +475,9 @@ function Theater({ entry }: { entry: CallEntry }) {
             muted={muted}
             cameraOff={cameraOff}
             stream={localStream}
-            speaking={!muted}
+            speaking={!muted && activeSpeakerId === "self"}
+            pinned={pinnedId === "self"}
+            onTogglePin={() => togglePin("self")}
           />
 
           {screenStream && (
@@ -345,6 +497,9 @@ function Theater({ entry }: { entry: CallEntry }) {
                 muted={peer.muted}
                 cameraOff={peer.cameraOff || !peer.camera}
                 stream={peer.camera}
+                speaking={!peer.muted && activeSpeakerId === peer.id}
+                pinned={pinnedId === peer.id}
+                onTogglePin={() => togglePin(peer.id)}
                 className={peer.connected ? "opacity-100" : "opacity-60"}
               />
               {peer.screen && <PeerScreen stream={peer.screen} name={peer.name} />}
