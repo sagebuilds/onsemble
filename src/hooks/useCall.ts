@@ -178,11 +178,18 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
 
     const start = async () => {
       try {
-        const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const chosen = devicesRef.current;
+        const media = await navigator.mediaDevices.getUserMedia({
+          video: chosen.videoDeviceId ? { deviceId: { exact: chosen.videoDeviceId } } : true,
+          audio: chosen.audioDeviceId ? { deviceId: { exact: chosen.audioDeviceId } } : true,
+        });
         if (cancelled) {
           media.getTracks().forEach((t) => t.stop());
           return;
         }
+        // Honour the choices made in the lobby.
+        media.getAudioTracks().forEach((t) => (t.enabled = !chosen.startMuted));
+        media.getVideoTracks().forEach((t) => (t.enabled = !chosen.startCameraOff));
         localRef.current = media;
         setLocalStream(media);
       } catch {
