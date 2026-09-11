@@ -308,23 +308,87 @@ export function useCall(
       });
       channelRef.current = channel;
 
+      const teardownSelf = (reason: "removed" | "locked") => {
+        if (removedSelfRef.current) return;
+        removedSelfRef.current = true;
+        for (const id of [...peersRef.current.keys()]) dropPeer(id);
+        metaRef.current.clear();
+        const ch = channelRef.current;
+        channelRef.current = null;
+        if (ch) void supabase.removeChannel(ch);
+        localRef.current?.getTracks().forEach((t) => t.stop());
+        localRef.current = null;
+        setLocalStream(null);
+        screenRef.current?.getTracks().forEach((t) => t.stop());
+        screenRef.current = null;
+        setScreenStream(null);
+        setJoined(false);
+        setRemovedNotice(reason);
+      };
+
       channel.on("presence", { event: "sync" }, () => {
         const state = channel.presenceState<Meta & { id: string }>();
         const present = new Set(Object.keys(state));
+        let anyoneLocked = false;
         for (const [id, entries] of Object.entries(state)) {
           const meta = entries[0];
           if (!meta) continue;
+          if (meta.verified && meta.locked) anyoneLocked = true;
           metaRef.current.set(id, {
             name: meta.name,
             muted: meta.muted,
             cameraOff: meta.cameraOff,
             screenId: meta.screenId ?? null,
+            verified: !!meta.verified,
+            userId: meta.userId ?? null,
+            locked: !!meta.locked,
           });
+
+          // Verified members police the room: kick anyone already removed, and
+          // anyone arriving after the room was locked.
+          if (id !== myId && selfMetaRef.current.verified) {
+            const banned =
+              removedIdsRef.current.has(id) ||
+              (meta.userId ? removedUsersRef.current.has(meta.userId) : false);
+            const lateJoiner = lockedRef.current && !admittedRef.current.has(id);
+            if (banned || lateJoiner) {
+              moderate({
+                from: myId,
+                action: "remove",
+                targetId: id,
+                reason: banned ? "removed" : "locked",
+              });
+              dropPeer(id);
+              continue;
+            }
+            if (!lockedRef.current) admittedRef.current.add(id);
+          }
+
           // The peer with the lower id makes the first offer.
           if (id !== myId && myId < id) ensurePeer(id);
         }
+        if (anyoneLocked !== lockedRef.current && !selfMetaRef.current.verified) {
+          lockedRef.current = anyoneLocked;
+        }
+        setLockedState(anyoneLocked || selfMetaRef.current.locked);
         for (const id of [...metaRef.current.keys()]) if (!present.has(id)) dropPeer(id);
         syncPeers();
+      });
+
+      channel.on("broadcast", { event: "moderation" }, ({ payload }) => {
+        const msg = payload as ModerationPayload;
+        const fromMeta = metaRef.current.get(msg.from);
+        // Only signed-in members can moderate.
+        if (!fromMeta?.verified) return;
+        if (msg.action !== "remove") return;
+        if (msg.targetId === myId) {
+          teardownSelf(msg.reason);
+          return;
+        }
+        removedIdsRef.current.add(msg.targetId);
+        const targetMeta = metaRef.current.get(msg.targetId);
+        if (targetMeta?.userId) removedUsersRef.current.add(targetMeta.userId);
+        dropPeer(msg.targetId);
       });
 
       channel.on("broadcast", { event: "signal" }, async ({ payload }) => {
@@ -352,6 +416,7 @@ export function useCall(
           /* ignore out-of-order signalling errors */
         }
       });
+
 
       channel.subscribe(async (status) => {
         if (status !== "SUBSCRIBED") return;
