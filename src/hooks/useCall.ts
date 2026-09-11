@@ -61,8 +61,8 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
   const screenRef = useRef<MediaStream | null>(null);
   const selfMetaRef = useRef<Meta>({
     name: displayName,
-    muted: false,
-    cameraOff: false,
+    muted: !!devices.startMuted,
+    cameraOff: !!devices.startCameraOff,
     screenId: null,
   });
 
@@ -71,8 +71,8 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
   const [peers, setPeers] = useState<CallPeer[]>([]);
   const [joined, setJoined] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
-  const [muted, setMuted] = useState(false);
-  const [cameraOff, setCameraOff] = useState(false);
+  const [muted, setMuted] = useState(!!devices.startMuted);
+  const [cameraOff, setCameraOff] = useState(!!devices.startCameraOff);
 
   const syncPeers = useCallback(() => {
     const list: CallPeer[] = [];
