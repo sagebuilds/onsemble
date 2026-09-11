@@ -22,6 +22,7 @@ import { VideoTile } from "@/components/VideoTile";
 import { useCall } from "@/hooks/useCall";
 import { useSync } from "@/hooks/useSync";
 import { DeviceLobby, type CallEntry } from "@/components/DeviceLobby";
+import { CallDiagnostics } from "@/components/CallDiagnostics";
 import { useProfile } from "@/lib/data";
 import { STREAMING_SERVICES, type RoomKind } from "@/lib/room";
 
@@ -104,6 +105,7 @@ function Theater({ entry }: { entry: CallEntry }) {
     startShare,
     stopShare,
     usingRelay,
+    relayAvailable,
   } = useCall(`${code}:${kind}`, profile?.display_name ?? "Guest", entry);
 
   const {
@@ -217,6 +219,15 @@ function Theater({ entry }: { entry: CallEntry }) {
                   : "Sync standby"
             }
             active={syncActive}
+          />
+          <CallDiagnostics
+            peers={peers}
+            joined={joined}
+            mediaError={mediaError}
+            relayAvailable={relayAvailable}
+            usingRelay={usingRelay}
+            extensionInstalled={extensionInstalled}
+            localStream={localStream}
           />
           <Button variant="secondary" className="rounded-full" onClick={copyLink}>
             <Copy className="mr-1 h-4 w-4" /> Invite
