@@ -384,5 +384,7 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
     toggleCamera,
     startShare,
     stopShare,
+    relayAvailable,
+    usingRelay,
   };
 }
