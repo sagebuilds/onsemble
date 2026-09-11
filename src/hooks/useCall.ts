@@ -484,6 +484,45 @@ export function useCall(
     if (joined) pushMeta();
   }, [displayName, joined, pushMeta]);
 
+  /* Keep our signed-in status in sync (the profile may load after we join). */
+  useEffect(() => {
+    selfMetaRef.current = {
+      ...selfMetaRef.current,
+      verified: identity.verified,
+      userId: identity.userId,
+    };
+    if (joined) pushMeta();
+  }, [identity.verified, identity.userId, joined, pushMeta]);
+
+  /* Signed-in members can throw a guest out of the room. */
+  const removeParticipant = useCallback(
+    (targetId: string) => {
+      if (!selfMetaRef.current.verified) return;
+      const targetMeta = metaRef.current.get(targetId);
+      removedIdsRef.current.add(targetId);
+      if (targetMeta?.userId) removedUsersRef.current.add(targetMeta.userId);
+      moderate({ from: myId, action: "remove", targetId, reason: "removed" });
+      dropPeer(targetId);
+    },
+    [dropPeer, moderate, myId],
+  );
+
+  /* Signed-in members can lock the room so nobody new can join. */
+  const setRoomLocked = useCallback(
+    (next: boolean) => {
+      if (!selfMetaRef.current.verified) return;
+      lockedRef.current = next;
+      if (next) {
+        admittedRef.current = new Set(metaRef.current.keys());
+      }
+      selfMetaRef.current = { ...selfMetaRef.current, locked: next };
+      setLockedState(next);
+      pushMeta();
+    },
+    [pushMeta],
+  );
+
+
   const toggleMic = useCallback(() => {
     setMuted((prev) => {
       const next = !prev;
