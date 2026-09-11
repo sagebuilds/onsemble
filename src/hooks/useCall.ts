@@ -139,8 +139,10 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
         ignoreOffer: false,
         streams: new Map(),
         connected: false,
+        route: null,
       };
       peersRef.current.set(remoteId, entry);
+      pc.oniceconnectionstatechange = () => syncPeers();
 
       for (const track of localRef.current?.getTracks() ?? [])
         pc.addTrack(track, localRef.current!);
