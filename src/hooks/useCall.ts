@@ -15,6 +15,9 @@ export type CallPeer = {
   camera: MediaStream | null;
   screen: MediaStream | null;
   connected: boolean;
+  /* moderation */
+  verified: boolean;
+  userId: string | null;
   /* diagnostics */
   connectionState: RTCPeerConnectionState | "new";
   iceState: RTCIceConnectionState | "new";
@@ -24,7 +27,23 @@ export type CallPeer = {
   hasVideo: boolean;
 };
 
-type Meta = { name: string; muted: boolean; cameraOff: boolean; screenId: string | null };
+type Meta = {
+  name: string;
+  muted: boolean;
+  cameraOff: boolean;
+  screenId: string | null;
+  verified: boolean;
+  userId: string | null;
+  locked: boolean;
+};
+
+type ModerationPayload = {
+  from: string;
+  action: "remove";
+  targetId: string;
+  reason: "removed" | "locked";
+};
+
 
 type PeerConn = {
   pc: RTCPeerConnection;
