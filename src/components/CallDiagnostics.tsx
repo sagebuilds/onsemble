@@ -72,7 +72,11 @@ function buildChecks({
   /* 2. Room connection */
   checks.push(
     joined
-      ? { label: "Room connection", tone: "ok", detail: "Connected to the room's signalling channel." }
+      ? {
+          label: "Room connection",
+          tone: "ok",
+          detail: "Connected to the room's signalling channel.",
+        }
       : {
           label: "Room connection",
           tone: "bad",
