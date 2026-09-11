@@ -1,8 +1,8 @@
 # Together Stream
 
-Project Overview: Build a desktop-only web application and accompanying Chrome extension scaffolding called "Onsemble" (spelled exactly like that). Onsemble is designed for long-distance friends to create virtual rooms, video chat, and synchronize video playback across major streaming platforms (YouTube, Netflix, Disney+, Apple TV, Amazon Prime) via a Chrome extension.
+Project Overview: Build a web application and accompanying Chrome extension scaffolding called "Onsemble" (spelled exactly like that). Onsemble is designed for long-distance friends to create virtual rooms, video chat, and synchronize video playback across major streaming platforms (YouTube, Netflix, Disney+, Apple TV, Amazon Prime) via a Chrome extension.
 
-Target Device: Strict desktop experience. Do not optimize for mobile screens.
+Target Device: Responsive web experience — works on desktop and adapts down to smaller screens.
 
 Design System & Theme:
 
