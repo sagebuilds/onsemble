@@ -15,6 +15,13 @@ export type CallPeer = {
   camera: MediaStream | null;
   screen: MediaStream | null;
   connected: boolean;
+  /* diagnostics */
+  connectionState: RTCPeerConnectionState | "new";
+  iceState: RTCIceConnectionState | "new";
+  route: "direct" | "relayed" | null;
+  relayRetried: boolean;
+  hasAudio: boolean;
+  hasVideo: boolean;
 };
 
 type Meta = { name: string; muted: boolean; cameraOff: boolean; screenId: string | null };
@@ -26,6 +33,7 @@ type PeerConn = {
   ignoreOffer: boolean;
   streams: Map<string, MediaStream>;
   connected: boolean;
+  route: "direct" | "relayed" | null;
 };
 
 type SignalPayload = {
