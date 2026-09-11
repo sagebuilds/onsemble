@@ -79,6 +79,7 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
 
   const iceRef = useRef<RTCConfiguration>(DEFAULT_ICE);
   const relayOnlyRef = useRef(new Set<string>());
+  const relayAvailableRef = useRef(false);
 
   const syncPeers = useCallback(() => {
     const list: CallPeer[] = [];
