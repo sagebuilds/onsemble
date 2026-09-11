@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
@@ -35,6 +36,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -45,6 +47,10 @@ function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup" && !ageConfirmed) {
+      toast.error("Please confirm you are at least 18 to continue.");
+      return;
+    }
     setBusy(true);
     try {
       if (mode === "signup") {
@@ -73,6 +79,10 @@ function AuthPage() {
   };
 
   const google = async () => {
+    if (mode === "signup" && !ageConfirmed) {
+      toast.error("Please confirm you are at least 18 to continue.");
+      return;
+    }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
@@ -140,7 +150,18 @@ function AuthPage() {
               className="rounded-xl"
             />
           </div>
-          <Button type="submit" disabled={busy} className="w-full rounded-full" size="lg">
+          {mode === "signup" && (
+            <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-3 text-sm">
+              <Checkbox
+                checked={ageConfirmed}
+                onCheckedChange={(v) => setAgeConfirmed(v === true)}
+                className="mt-0.5"
+                aria-label="I confirm I am at least 18"
+              />
+              <span className="leading-snug">I confirm I am at least 18</span>
+            </label>
+          )}
+          <Button type="submit" disabled={busy || (mode === "signup" && !ageConfirmed)} className="w-full rounded-full" size="lg">
             {mode === "signin" ? "Sign in" : "Create account"}
           </Button>
         </form>
@@ -149,13 +170,21 @@ function AuthPage() {
           <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
         </div>
 
-        <Button variant="secondary" className="w-full rounded-full" onClick={google}>
+        <Button
+          variant="secondary"
+          className="w-full rounded-full"
+          disabled={mode === "signup" && !ageConfirmed}
+          onClick={google}
+        >
           Continue with Google
         </Button>
 
         <button
           type="button"
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+          onClick={() => {
+            setAgeConfirmed(false);
+            setMode(mode === "signin" ? "signup" : "signin");
+          }}
           className="mt-6 w-full text-sm font-semibold text-primary hover:underline"
         >
           {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
