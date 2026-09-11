@@ -173,6 +173,7 @@ export function DeviceLobby({ roomLabel, code, displayName, onJoin, onCancel }: 
   }, [startCameraOff]);
 
   const join = () => {
+    writePrefs({ videoDeviceId, audioDeviceId });
     stop();
     onJoin({
       videoDeviceId: videoDeviceId || null,
