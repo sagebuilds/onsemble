@@ -24,7 +24,7 @@ export function useActiveSpeaker(sources: Source[]): string | null {
     if (!AudioCtx) return;
 
     const ctx = new AudioCtx();
-    const analysers: { id: string; analyser: AnalyserNode; data: Uint8Array }[] = [];
+    const analysers: { id: string; analyser: AnalyserNode; data: Uint8Array<ArrayBuffer> }[] = [];
     const nodes: MediaStreamAudioSourceNode[] = [];
 
     for (const source of sources) {
