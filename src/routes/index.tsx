@@ -182,20 +182,7 @@ function Landing() {
         </div>
       </section>
 
-      <footer className="relative mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 pb-10 text-sm text-muted-foreground sm:px-8">
-        <span>© {new Date().getFullYear()} Onsemble</span>
-        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 font-semibold">
-          <Link to="/terms" className="hover:text-foreground">
-            Terms of Service
-          </Link>
-          <Link to="/privacy" className="hover:text-foreground">
-            Privacy Policy
-          </Link>
-          <Link to="/extension" className="hover:text-foreground">
-            Chrome extension
-          </Link>
-        </nav>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
