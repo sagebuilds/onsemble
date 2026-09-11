@@ -74,7 +74,14 @@ export type CallDevices = {
   startCameraOff?: boolean;
 };
 
-export function useCall(roomKey: string, displayName: string, devices: CallDevices = {}) {
+export type CallIdentity = { userId: string | null; verified: boolean };
+
+export function useCall(
+  roomKey: string,
+  displayName: string,
+  devices: CallDevices = {},
+  identity: CallIdentity = { userId: null, verified: false },
+) {
   const devicesRef = useRef(devices);
   const idRef = useRef<string>("");
   if (!idRef.current) idRef.current = newId();
@@ -90,6 +97,9 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
     muted: !!devices.startMuted,
     cameraOff: !!devices.startCameraOff,
     screenId: null,
+    verified: identity.verified,
+    userId: identity.userId,
+    locked: false,
   });
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -101,10 +111,19 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
   const [cameraOff, setCameraOff] = useState(!!devices.startCameraOff);
   const [relayAvailable, setRelayAvailable] = useState(false);
   const [usingRelay, setUsingRelay] = useState(false);
+  const [locked, setLockedState] = useState(false);
+  const [removedNotice, setRemovedNotice] = useState<"removed" | "locked" | null>(null);
 
   const iceRef = useRef<RTCConfiguration>(DEFAULT_ICE);
   const relayOnlyRef = useRef(new Set<string>());
   const relayAvailableRef = useRef(false);
+  /* Moderation bookkeeping: who was already in the room when it was locked,
+     and who a verified member has thrown out. */
+  const admittedRef = useRef(new Set<string>());
+  const removedIdsRef = useRef(new Set<string>());
+  const removedUsersRef = useRef(new Set<string>());
+  const lockedRef = useRef(false);
+  const removedSelfRef = useRef(false);
 
   const syncPeers = useCallback(() => {
     const list: CallPeer[] = [];
@@ -122,6 +141,8 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
         camera,
         screen,
         connected: conn?.connected ?? false,
+        verified: meta.verified,
+        userId: meta.userId,
         connectionState: conn?.pc.connectionState ?? "new",
         iceState: conn?.pc.iceConnectionState ?? "new",
         route: conn?.route ?? null,
@@ -132,6 +153,7 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
     }
     setPeers(list);
   }, [myId]);
+
 
   const signal = useCallback((payload: SignalPayload) => {
     channelRef.current?.send({ type: "broadcast", event: "signal", payload });
