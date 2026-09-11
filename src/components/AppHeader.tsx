@@ -1,22 +1,51 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Popcorn } from "lucide-react";
+import { useState } from "react";
+import { Loader2, LogOut, Popcorn, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/lib/data";
 
 export function AppHeader() {
   const navigate = useNavigate();
   const { data: profile } = useProfile();
-
   const queryClient = useQueryClient();
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+
   const signOut = async () => {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    navigate({ to: "/", replace: true });
+    setSigningOut(true);
+    setSignOutError(null);
+    try {
+      await queryClient.cancelQueries();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      queryClient.clear();
+      toast.success("You're signed out. See you next movie night!");
+      navigate({ to: "/", replace: true });
+      setConfirmOpen(false);
+    } catch (err) {
+      setSignOutError(
+        err instanceof Error ? err.message : "We couldn't sign you out. Check your connection.",
+      );
+      toast.error("Sign out didn't work. Try again.");
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -44,10 +73,79 @@ export function AppHeader() {
           </Avatar>
           {profile?.display_name ?? "Account"}
         </Link>
-        <Button variant="ghost" className="rounded-full" onClick={signOut}>
-          Sign out
+        <Button
+          variant="ghost"
+          className="rounded-full"
+          disabled={signingOut}
+          onClick={() => {
+            setSignOutError(null);
+            setConfirmOpen(true);
+          }}
+        >
+          {signingOut ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Signing out…
+            </>
+          ) : (
+            <>
+              <LogOut className="h-4 w-4" /> Sign out
+            </>
+          )}
         </Button>
       </nav>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (signingOut) return;
+          setConfirmOpen(open);
+          if (!open) setSignOutError(null);
+        }}
+      >
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign out of Onsemble?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You'll leave any room you're in and need to sign in again to get back to your saved
+              rooms, shelves and photos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {signOutError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+            >
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{signOutError}</span>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={signingOut} className="rounded-full">
+              Stay signed in
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={signingOut}
+              className="rounded-full"
+              onClick={(e) => {
+                e.preventDefault();
+                void signOut();
+              }}
+            >
+              {signingOut ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Signing out…
+                </>
+              ) : signOutError ? (
+                "Try again"
+              ) : (
+                "Sign out"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }
