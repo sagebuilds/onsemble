@@ -3,35 +3,18 @@ import { Heart, Mail, Popcorn } from "lucide-react";
 
 const CONTACT_EMAIL = "hello@onsemble.app";
 
-const COLUMNS: { title: string; links: { label: string; to: string; external?: boolean }[] }[] = [
-  {
-    title: "Rooms",
-    links: [
-      { label: "Create a room", to: "/#create" },
-      { label: "My rooms", to: "/home" },
-      { label: "Sign in", to: "/auth" },
-    ],
-  },
-  {
-    title: "Watch together",
-    links: [
-      { label: "Chrome extension", to: "/extension" },
-      { label: "Streaming services", to: "/extension#services" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { label: "Terms of Service", to: "/terms" },
-      { label: "Privacy Policy", to: "/privacy" },
-    ],
-  },
+const STREAMING_SERVICES = [
+  "YouTube",
+  "Netflix",
+  "Disney+",
+  "Apple TV+",
+  "Prime Video",
 ];
 
 export function SiteFooter() {
   return (
     <footer className="relative mt-8 border-t border-border bg-card/70">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-8 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-8 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-joy shadow-playful">
@@ -52,25 +35,62 @@ export function SiteFooter() {
           </a>
         </div>
 
-        {COLUMNS.map((column) => (
-          <nav key={column.title} aria-label={column.title} className="min-w-0">
-            <h2 className="font-display text-sm font-bold uppercase tracking-widest text-foreground">
-              {column.title}
-            </h2>
-            <ul className="mt-4 space-y-2.5 text-sm font-semibold text-muted-foreground">
-              {column.links.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    to={link.to}
-                    className="transition-colors hover:text-foreground"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        ))}
+        <nav aria-label="Rooms" className="min-w-0">
+          <h2 className="font-display text-sm font-bold uppercase tracking-widest text-foreground">
+            Rooms
+          </h2>
+          <ul className="mt-4 space-y-2.5 text-sm font-semibold text-muted-foreground">
+            <li>
+              <a href="/#create" className="transition-colors hover:text-foreground">
+                Create a room
+              </a>
+            </li>
+            <li>
+              <Link to="/home" className="transition-colors hover:text-foreground">
+                My rooms
+              </Link>
+            </li>
+            <li>
+              <Link to="/auth" className="transition-colors hover:text-foreground">
+                Sign in
+              </Link>
+            </li>
+          </ul>
+        </nav>
+
+        <nav aria-label="Streaming" className="min-w-0">
+          <h2 className="font-display text-sm font-bold uppercase tracking-widest text-foreground">
+            Streaming
+          </h2>
+          <ul className="mt-4 space-y-2.5 text-sm font-semibold text-muted-foreground">
+            {STREAMING_SERVICES.map((service) => (
+              <li key={service}>{service}</li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav aria-label="Legal" className="min-w-0">
+          <h2 className="font-display text-sm font-bold uppercase tracking-widest text-foreground">
+            Legal
+          </h2>
+          <ul className="mt-4 space-y-2.5 text-sm font-semibold text-muted-foreground">
+            <li>
+              <Link to="/terms" className="transition-colors hover:text-foreground">
+                Terms of Service
+              </Link>
+            </li>
+            <li>
+              <Link to="/privacy" className="transition-colors hover:text-foreground">
+                Privacy Policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/extension" className="transition-colors hover:text-foreground">
+                Chrome extension
+              </Link>
+            </li>
+          </ul>
+        </nav>
       </div>
 
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-border px-4 py-5 text-sm text-muted-foreground sm:px-8">
@@ -85,9 +105,6 @@ export function SiteFooter() {
           </Link>
           <Link to="/privacy" className="transition-colors hover:text-foreground">
             Privacy
-          </Link>
-          <Link to="/extension" className="transition-colors hover:text-foreground">
-            Extension
           </Link>
         </span>
       </div>
