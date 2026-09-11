@@ -175,7 +175,13 @@ function Room() {
           />
           <StatusPill
             icon={<Radio className="h-3.5 w-3.5" />}
-            label={syncActive ? `Sync active · ${service}` : "Sync standby"}
+            label={
+              syncActive
+                ? `Sync active · ${service}`
+                : extensionInstalled
+                  ? "Extension ready — open a show"
+                  : "Sync standby"
+            }
             active={syncActive}
           />
           <Button variant="secondary" className="rounded-full" onClick={copyLink}>
@@ -213,12 +219,29 @@ function Room() {
               <div className="text-center">
                 <div className="mx-auto h-1.5 w-40 animate-pulse rounded-full bg-primary/40" />
                 <h2 className="mt-6 font-display text-3xl font-semibold">
-                  Waiting for stream sync…
+                  {syncActive
+                    ? `Playing in sync on ${service}`
+                    : extensionInstalled
+                      ? "Waiting for a show…"
+                      : "Add the Onsemble extension to sync"}
                 </h2>
                 <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                  Open YouTube, Netflix, Disney+, Apple TV+ or Prime Video in another tab, or share
-                  your screen to watch together right here.
+                  {syncActive
+                    ? lastEvent
+                      ? `Last move: ${lastEvent.action} at ${formatTime(lastEvent.currentTime)}. Keep this tab open — play, pause and seek stay matched for everyone.`
+                      : "Keep this tab open — play, pause and seek stay matched for everyone."
+                    : extensionInstalled
+                      ? "Open YouTube, Netflix, Disney+, Apple TV+ or Prime Video in another tab and press play — everyone here follows along."
+                      : "Install the extension and keep this tab open, then play something in another tab and the whole room stays in step. You can also just share your screen."}
                 </p>
+                {!extensionInstalled && (
+                  <Link
+                    to="/extension"
+                    className="mt-5 inline-block rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    Get the extension
+                  </Link>
+                )}
               </div>
             )}
           </div>
@@ -228,7 +251,7 @@ function Room() {
               {STREAMING_SERVICES.map((s) => (
                 <button
                   key={s}
-                  onClick={() => setService((cur) => (cur === s ? null : s))}
+                  onClick={() => setManualService((cur) => (cur === s ? null : s))}
                   className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                     service === s
                       ? "bg-primary text-primary-foreground"
