@@ -27,6 +27,29 @@ type Props = {
 
 type Status = "requesting" | "ready" | "denied" | "missing";
 
+const STORE_KEY = "onsemble.devicePrefs";
+
+type StoredPrefs = { videoDeviceId?: string; audioDeviceId?: string };
+
+function readPrefs(): StoredPrefs {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(STORE_KEY);
+    return raw ? (JSON.parse(raw) as StoredPrefs) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePrefs(prefs: StoredPrefs) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORE_KEY, JSON.stringify(prefs));
+  } catch {
+    /* storage unavailable — remembering devices is best effort */
+  }
+}
+
 export function DeviceLobby({ roomLabel, code, displayName, onJoin, onCancel }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -40,6 +63,10 @@ export function DeviceLobby({ roomLabel, code, displayName, onJoin, onCancel }: 
   const [startMuted, setStartMuted] = useState(false);
   const [startCameraOff, setStartCameraOff] = useState(false);
   const [level, setLevel] = useState(0);
+
+  const openPreviewRef = useRef<(video: string, audio: string) => Promise<void>>(
+    async () => undefined,
+  );
 
   const stop = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -70,10 +97,18 @@ export function DeviceLobby({ roomLabel, code, displayName, onJoin, onCancel }: 
         const activeAudio = stream.getAudioTracks()[0]?.getSettings().deviceId;
         if (activeVideo) setVideoDeviceId(activeVideo);
         if (activeAudio) setAudioDeviceId(activeAudio);
+        writePrefs({ videoDeviceId: activeVideo ?? "", audioDeviceId: activeAudio ?? "" });
         return;
       } catch (err) {
         const name = err instanceof DOMException ? err.name : "";
         if (name === "NotFoundError" || name === "OverconstrainedError") {
+          /* A remembered device is gone — fall back to the system defaults. */
+          if (video || audio) {
+            setVideoDeviceId("");
+            setAudioDeviceId("");
+            await openPreviewRef.current("", "");
+            return;
+          }
           setStatus("missing");
           setErrorDetail("We couldn't find that camera or microphone.");
         } else if (name === "NotReadableError") {
@@ -88,8 +123,11 @@ export function DeviceLobby({ roomLabel, code, displayName, onJoin, onCancel }: 
     [stop],
   );
 
+  openPreviewRef.current = openPreview;
+
   useEffect(() => {
-    void openPreview("", "");
+    const saved = readPrefs();
+    void openPreview(saved.videoDeviceId ?? "", saved.audioDeviceId ?? "");
     return stop;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -135,6 +173,7 @@ export function DeviceLobby({ roomLabel, code, displayName, onJoin, onCancel }: 
   }, [startCameraOff]);
 
   const join = () => {
+    writePrefs({ videoDeviceId, audioDeviceId });
     stop();
     onJoin({
       videoDeviceId: videoDeviceId || null,
