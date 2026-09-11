@@ -64,6 +64,10 @@ export function DeviceLobby({ roomLabel, code, displayName, onJoin, onCancel }: 
   const [startCameraOff, setStartCameraOff] = useState(false);
   const [level, setLevel] = useState(0);
 
+  const openPreviewRef = useRef<(video: string, audio: string) => Promise<void>>(
+    async () => undefined,
+  );
+
   const stop = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
