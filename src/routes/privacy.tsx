@@ -106,7 +106,7 @@ function Privacy() {
           <li>Delete individual photos, bookshelf items and history entries from a room.</li>
           <li>Leave a room to stop sharing with it.</li>
           <li>
-            Ask for a copy of your data, or for it to be deleted, by emailing hello@onsemble.app.
+            Ask for a copy of your data, or for it to be deleted, by emailing sage@sagefranch.com.
           </li>
           <li>Remove the extension from your browser to stop all playback sync.</li>
         </ul>
@@ -130,7 +130,7 @@ function Privacy() {
         <h2>Changes and contact</h2>
         <p>
           We'll update this page when our practices change and adjust the date at the top. Privacy
-          questions can be sent to hello@onsemble.app.
+          questions can be sent to sage@sagefranch.com.
         </p>
       </section>
     </LegalPage>

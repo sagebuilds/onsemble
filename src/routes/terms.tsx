@@ -122,7 +122,7 @@ function Terms() {
         <h2>10. Changes and contact</h2>
         <p>
           We'll update this page when these terms change and adjust the date at the top. Questions
-          about these terms can be sent to hello@onsemble.app.
+          about these terms can be sent to sage@sagefranch.com.
         </p>
       </section>
     </LegalPage>
