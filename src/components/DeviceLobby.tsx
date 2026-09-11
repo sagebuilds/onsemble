@@ -93,10 +93,18 @@ export function DeviceLobby({ roomLabel, code, displayName, onJoin, onCancel }: 
         const activeAudio = stream.getAudioTracks()[0]?.getSettings().deviceId;
         if (activeVideo) setVideoDeviceId(activeVideo);
         if (activeAudio) setAudioDeviceId(activeAudio);
+        writePrefs({ videoDeviceId: activeVideo ?? "", audioDeviceId: activeAudio ?? "" });
         return;
       } catch (err) {
         const name = err instanceof DOMException ? err.name : "";
         if (name === "NotFoundError" || name === "OverconstrainedError") {
+          /* A remembered device is gone — fall back to the system defaults. */
+          if (video || audio) {
+            setVideoDeviceId("");
+            setAudioDeviceId("");
+            await openPreviewRef.current("", "");
+            return;
+          }
           setStatus("missing");
           setErrorDetail("We couldn't find that camera or microphone.");
         } else if (name === "NotReadableError") {
