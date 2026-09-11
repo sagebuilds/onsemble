@@ -435,5 +435,6 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
     stopShare,
     relayAvailable,
     usingRelay,
+    iceServerCount: iceRef.current.iceServers?.length ?? 0,
   };
 }
