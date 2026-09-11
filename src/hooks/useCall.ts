@@ -159,9 +159,14 @@ export function useCall(
     channelRef.current?.send({ type: "broadcast", event: "signal", payload });
   }, []);
 
+  const moderate = useCallback((payload: ModerationPayload) => {
+    channelRef.current?.send({ type: "broadcast", event: "moderation", payload });
+  }, []);
+
   const pushMeta = useCallback(() => {
     channelRef.current?.track({ id: myId, ...selfMetaRef.current });
   }, [myId]);
+
 
   const ensurePeer = useCallback(
     (remoteId: string): PeerConn => {
