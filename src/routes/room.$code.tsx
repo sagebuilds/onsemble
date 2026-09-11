@@ -247,7 +247,7 @@ function Theater({ entry }: { entry: CallEntry }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <StatusPill
             icon={<Wifi className="h-3.5 w-3.5" />}
             label={
@@ -326,8 +326,8 @@ function Theater({ entry }: { entry: CallEntry }) {
       </header>
 
       <section className="mx-auto grid w-full max-w-[110rem] gap-6 px-4 pb-10 sm:px-8 lg:grid-cols-[1fr_20rem]">
-        <div className="flex min-h-[34rem] flex-col overflow-hidden rounded-3xl border border-border bg-card/60">
-          <div className="flex flex-1 items-center justify-center p-10">
+        <div className="flex min-h-[24rem] flex-col overflow-hidden rounded-3xl border border-border bg-card/60 lg:min-h-[34rem]">
+          <div className="flex flex-1 items-center justify-center p-4 sm:p-10">
             {showPeopleOnStage ? (
               <div className="w-full">
                 {layout === "grid" ? (
