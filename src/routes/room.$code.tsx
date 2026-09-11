@@ -272,6 +272,37 @@ function Theater({ entry }: { entry: CallEntry }) {
             }
             active={syncActive}
           />
+          <div className="flex items-center gap-1 rounded-full border border-border bg-secondary p-1">
+            <button
+              type="button"
+              onClick={() => setLayout("speaker")}
+              aria-pressed={layout === "speaker"}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                layout === "speaker" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <Maximize2 className="h-3.5 w-3.5" /> Speaker
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayout("grid")}
+              aria-pressed={layout === "grid"}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                layout === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Grid
+            </button>
+          </div>
+          {pinnedId && (
+            <Button
+              variant="secondary"
+              className="rounded-full"
+              onClick={() => setPinnedId(null)}
+            >
+              Unpin
+            </Button>
+          )}
           <CallDiagnostics
             peers={peers}
             joined={joined}
