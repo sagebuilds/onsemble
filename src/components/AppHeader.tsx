@@ -32,6 +32,9 @@ export function AppHeader() {
     setSignOutError(null);
     try {
       await queryClient.cancelQueries();
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("onsemble.intentionalSignOut", "1");
+      }
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       queryClient.clear();

@@ -137,6 +137,14 @@ function RootComponent() {
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      if (event === "SIGNED_OUT" && typeof window !== "undefined") {
+        // Distinguish an expired/revoked session from a deliberate sign-out.
+        if (sessionStorage.getItem("onsemble.intentionalSignOut")) {
+          sessionStorage.removeItem("onsemble.intentionalSignOut");
+        } else {
+          sessionStorage.setItem("onsemble.sessionExpired", "1");
+        }
+      }
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
