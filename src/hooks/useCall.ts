@@ -103,6 +103,12 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
         camera,
         screen,
         connected: conn?.connected ?? false,
+        connectionState: conn?.pc.connectionState ?? "new",
+        iceState: conn?.pc.iceConnectionState ?? "new",
+        route: conn?.route ?? null,
+        relayRetried: relayOnlyRef.current.has(id),
+        hasAudio: !!camera?.getAudioTracks().length,
+        hasVideo: !!camera?.getVideoTracks().length,
       });
     }
     setPeers(list);
