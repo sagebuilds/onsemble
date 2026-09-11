@@ -148,15 +148,15 @@ function Landing() {
               <span className="h-3 w-3 rounded-full bg-sunshine" />
               <span className="h-3 w-3 rounded-full bg-mint" />
             </div>
-            <div className="grid grid-cols-[1.6fr_1fr] gap-3">
-              <div className="flex aspect-video items-center justify-center rounded-2xl bg-joy text-center">
+            <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3">
+              <div className="flex aspect-video min-w-0 items-center justify-center rounded-2xl bg-joy text-center">
                 <span className="font-display text-lg font-semibold text-primary-foreground">
                   Lights, camera…
                   <br />
                   sync!
                 </span>
               </div>
-              <div className="grid gap-3">
+              <div className="grid min-w-0 gap-3">
                 {["Mia", "Theo", "Ava"].map((n, i) => (
                   <div
                     key={n}
