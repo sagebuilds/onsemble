@@ -1,116 +1,104 @@
 /**
  * Onsemble — background service worker.
- * Acts as the websocket / messaging relay between the Onsemble web app
- * and the active streaming tab running content.js.
+ *
+ * The Onsemble web app is the transport: it already has a realtime connection
+ * to everyone in the room. This worker simply relays playback events between
+ * the streaming tab (content.js) and the open Onsemble tab (bridge.js).
+ *
+ *   streaming tab  <-->  background  <-->  onsemble tab  <-->  room realtime
  */
 
-const RELAY_URL = "wss://relay.onsemble.app/rooms"; // replace with your realtime relay
-
-let socket = null;
 let roomCode = null;
 let streamTabId = null;
-let selfId = crypto.randomUUID();
+let streamService = null;
+const bridgeTabs = new Set();
 
 function log(...args) {
   console.log("[Onsemble bg]", ...args);
 }
 
-/* ---------------- socket relay ---------------- */
-
-function connect(code) {
-  roomCode = code;
-  if (socket) socket.close();
-
-  try {
-    socket = new WebSocket(`${RELAY_URL}/${encodeURIComponent(code)}`);
-  } catch (err) {
-    log("socket failed, running in local-only mode", err);
-    return;
-  }
-
-  socket.onopen = () => {
-    log("connected to room", code);
-    chrome.storage.local.set({ roomCode: code, connected: true });
-  };
-
-  socket.onmessage = (event) => {
-    let msg;
-    try {
-      msg = JSON.parse(event.data);
-    } catch {
-      return;
-    }
-    if (msg.senderId === selfId) return; // ignore our own echo
-    // Remote playback command -> forward to the streaming tab
-    sendToStreamTab({ type: "ONSEMBLE_REMOTE_EVENT", payload: msg });
-  };
-
-  socket.onclose = () => {
-    log("relay closed");
-    chrome.storage.local.set({ connected: false });
-  };
+function persist() {
+  chrome.storage.local.set({
+    roomCode,
+    connected: bridgeTabs.size > 0 && !!roomCode,
+    videoDetected: streamTabId != null,
+    service: streamService,
+  });
 }
-
-function broadcast(payload) {
-  const msg = { ...payload, senderId: selfId, roomCode, at: Date.now() };
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify(msg));
-  } else {
-    log("broadcast (offline)", msg);
-  }
-}
-
-/* ---------------- tab messaging ---------------- */
 
 function sendToStreamTab(message) {
   if (streamTabId == null) return;
   chrome.tabs.sendMessage(streamTabId, message).catch(() => {
     streamTabId = null;
+    streamService = null;
+    persist();
   });
+}
+
+function sendToBridges(message) {
+  for (const tabId of [...bridgeTabs]) {
+    chrome.tabs.sendMessage(tabId, message).catch(() => bridgeTabs.delete(tabId));
+  }
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message?.type) {
-    // From the Onsemble web app / popup
+    /* ---- from bridge.js (the Onsemble tab) ---- */
+    case "ONSEMBLE_BRIDGE_HELLO":
+      if (sender.tab?.id != null) bridgeTabs.add(sender.tab.id);
+      roomCode = message.roomCode ?? roomCode;
+      persist();
+      sendResponse({ ok: true, roomCode, service: streamService, videoDetected: streamTabId != null });
+      break;
+
     case "ONSEMBLE_JOIN_ROOM":
-      connect(message.roomCode);
-      sendResponse({ ok: true, roomCode: message.roomCode });
+      if (sender.tab?.id != null) bridgeTabs.add(sender.tab.id);
+      roomCode = message.roomCode ?? null;
+      persist();
+      sendResponse({ ok: true, roomCode });
       break;
 
     case "ONSEMBLE_LEAVE_ROOM":
-      socket?.close();
-      socket = null;
+      if (sender.tab?.id != null) bridgeTabs.delete(sender.tab.id);
       roomCode = null;
-      chrome.storage.local.set({ connected: false, roomCode: null });
+      persist();
       sendResponse({ ok: true });
+      break;
+
+    // A friend played / paused / seeked — apply it to our streaming tab.
+    case "ONSEMBLE_REMOTE_EVENT":
+      sendToStreamTab({ type: "ONSEMBLE_REMOTE_EVENT", payload: message.payload });
+      sendResponse({ ok: true, applied: streamTabId != null });
       break;
 
     case "ONSEMBLE_STATUS":
       sendResponse({
         roomCode,
-        connected: socket?.readyState === WebSocket.OPEN,
-        streamTabId,
+        connected: bridgeTabs.size > 0 && !!roomCode,
+        videoDetected: streamTabId != null,
+        service: streamService,
       });
       break;
 
-    // From content.js: a video was found on a streaming page
+    /* ---- from content.js (the streaming tab) ---- */
     case "ONSEMBLE_VIDEO_DETECTED":
       streamTabId = sender.tab?.id ?? null;
-      chrome.storage.local.set({
-        service: message.service,
-        videoDetected: true,
-      });
-      broadcast({ type: "video-detected", service: message.service });
+      streamService = message.service ?? null;
+      persist();
+      sendToBridges({ type: "ONSEMBLE_VIDEO_DETECTED", service: streamService });
       sendResponse({ ok: true, roomCode });
       break;
 
-    // From content.js: local user played / paused / seeked
     case "ONSEMBLE_LOCAL_EVENT":
-      broadcast({
-        type: "playback",
-        action: message.action, // "play" | "pause" | "seeked"
-        currentTime: message.currentTime,
-        service: message.service,
+      sendToBridges({
+        type: "ONSEMBLE_LOCAL_EVENT",
+        payload: {
+          type: "playback",
+          action: message.action, // "play" | "pause" | "seeked"
+          currentTime: message.currentTime,
+          service: message.service,
+          at: Date.now(),
+        },
       });
       sendResponse({ ok: true });
       break;
@@ -118,19 +106,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     default:
       sendResponse({ ok: false, error: "unknown message" });
   }
-  return true; // async response channel
-});
-
-/* Allow the Onsemble web app page to talk to the extension directly. */
-chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => {
-  if (message?.type === "ONSEMBLE_JOIN_ROOM") connect(message.roomCode);
-  sendResponse({ ok: true, roomCode });
-  return true;
+  return true; // keep the async response channel open
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  bridgeTabs.delete(tabId);
   if (tabId === streamTabId) {
     streamTabId = null;
-    chrome.storage.local.set({ videoDetected: false, service: null });
+    streamService = null;
+    sendToBridges({ type: "ONSEMBLE_VIDEO_LOST" });
   }
+  persist();
 });
+
+log("service worker ready");
