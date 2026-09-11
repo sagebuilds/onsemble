@@ -585,6 +585,12 @@ export function useCall(
     stopShare,
     relayAvailable,
     usingRelay,
+    locked,
+    setRoomLocked,
+    removeParticipant,
+    removedNotice,
+    canModerate: identity.verified,
     iceServerCount: iceRef.current.iceServers?.length ?? 0,
+
   };
 }
