@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy,
+  LayoutGrid,
+  Maximize2,
   LogOut,
   Mic,
   MicOff,
@@ -20,6 +22,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { VideoTile } from "@/components/VideoTile";
 import { useCall } from "@/hooks/useCall";
+import { useActiveSpeaker } from "@/hooks/useActiveSpeaker";
 import { useSync } from "@/hooks/useSync";
 import { DeviceLobby, type CallEntry } from "@/components/DeviceLobby";
 import { CallDiagnostics } from "@/components/CallDiagnostics";
