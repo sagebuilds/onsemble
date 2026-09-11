@@ -74,6 +74,11 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [muted, setMuted] = useState(!!devices.startMuted);
   const [cameraOff, setCameraOff] = useState(!!devices.startCameraOff);
+  const [relayAvailable, setRelayAvailable] = useState(false);
+  const [usingRelay, setUsingRelay] = useState(false);
+
+  const iceRef = useRef<RTCConfiguration>(DEFAULT_ICE);
+  const relayOnlyRef = useRef(new Set<string>());
 
   const syncPeers = useCallback(() => {
     const list: CallPeer[] = [];
