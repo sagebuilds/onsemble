@@ -106,10 +106,12 @@ function Theater({ entry }: { entry: CallEntry }) {
     usingRelay,
   } = useCall(`${code}:${kind}`, profile?.display_name ?? "Guest", entry);
 
-  const { extensionInstalled, service: detectedService, lastEvent, syncActive } = useSync(
-    `${code}:${kind}`,
-    code,
-  );
+  const {
+    extensionInstalled,
+    service: detectedService,
+    lastEvent,
+    syncActive,
+  } = useSync(`${code}:${kind}`, code);
   const service = detectedService ?? manualService;
 
   const remoteScreen = peers.find((p) => p.screen)?.screen ?? null;
@@ -201,7 +203,7 @@ function Theater({ entry }: { entry: CallEntry }) {
                   ? `${peers.length} friend${peers.length > 1 ? "s" : ""} · relayed`
                   : peers.length === 0
                     ? "Waiting for friends…"
-                  : `${peers.length} friend${peers.length > 1 ? "s" : ""} in the room`
+                    : `${peers.length} friend${peers.length > 1 ? "s" : ""} in the room`
             }
             active={peers.length > 0}
           />
@@ -334,9 +336,7 @@ function Theater({ entry }: { entry: CallEntry }) {
                 stream={peer.camera}
                 className={peer.connected ? "opacity-100" : "opacity-60"}
               />
-              {peer.screen && (
-                <PeerScreen stream={peer.screen} name={peer.name} />
-              )}
+              {peer.screen && <PeerScreen stream={peer.screen} name={peer.name} />}
             </div>
           ))}
 

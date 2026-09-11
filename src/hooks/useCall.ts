@@ -4,9 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getIceServers } from "@/lib/ice.functions";
 
 const DEFAULT_ICE: RTCConfiguration = {
-  iceServers: [
-    { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
-  ],
+  iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
 };
 
 export type CallPeer = {

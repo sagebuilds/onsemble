@@ -280,7 +280,11 @@ export function DeviceLobby({ roomLabel, code, displayName, onJoin, onCancel }: 
                 className="rounded-full"
                 onClick={() => setStartCameraOff((v) => !v)}
               >
-                {startCameraOff ? <VideoOff className="h-4 w-4" /> : <VideoIcon className="h-4 w-4" />}
+                {startCameraOff ? (
+                  <VideoOff className="h-4 w-4" />
+                ) : (
+                  <VideoIcon className="h-4 w-4" />
+                )}
                 {startCameraOff ? "Camera off" : "Camera on"}
               </Button>
             </div>
