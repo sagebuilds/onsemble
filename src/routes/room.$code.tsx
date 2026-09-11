@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy,
   LayoutGrid,
+  Lock,
+  LockOpen,
   Maximize2,
   LogOut,
   Mic,
@@ -13,6 +15,7 @@ import {
   Popcorn,
   Radio,
   ScreenShare,
+  UserX,
   Video as VideoIcon,
   VideoOff,
   Wifi,
@@ -23,11 +26,13 @@ import { Button } from "@/components/ui/button";
 import { VideoTile } from "@/components/VideoTile";
 import { useCall } from "@/hooks/useCall";
 import { useActiveSpeaker } from "@/hooks/useActiveSpeaker";
+import { useSession } from "@/hooks/useSession";
 import { useSync } from "@/hooks/useSync";
 import { DeviceLobby, type CallEntry } from "@/components/DeviceLobby";
 import { CallDiagnostics } from "@/components/CallDiagnostics";
 import { useProfile } from "@/lib/data";
 import { STREAMING_SERVICES, type RoomKind } from "@/lib/room";
+
 
 export const Route = createFileRoute("/room/$code")({
   validateSearch: (search: Record<string, unknown>): { kind: RoomKind } => ({
@@ -88,6 +93,7 @@ function Theater({ entry }: { entry: CallEntry }) {
   const { kind } = Route.useSearch();
   const navigate = useNavigate();
   const { data: profile } = useProfile();
+  const { session } = useSession();
 
   const selfVideoRef = useRef<HTMLVideoElement>(null);
   const stageScreenRef = useRef<HTMLVideoElement>(null);
@@ -96,6 +102,11 @@ function Theater({ entry }: { entry: CallEntry }) {
   const [manualService, setManualService] = useState<string | null>(null);
   const [layout, setLayout] = useState<"speaker" | "grid">("speaker");
   const [pinnedId, setPinnedId] = useState<string | null>(null);
+
+  const identity = useMemo(
+    () => ({ userId: session?.user?.id ?? null, verified: !!session }),
+    [session],
+  );
 
   const {
     localStream,
@@ -111,7 +122,13 @@ function Theater({ entry }: { entry: CallEntry }) {
     stopShare,
     usingRelay,
     relayAvailable,
-  } = useCall(`${code}:${kind}`, profile?.display_name ?? "Guest", entry);
+    locked,
+    setRoomLocked,
+    removeParticipant,
+    removedNotice,
+    canModerate,
+  } = useCall(`${code}:${kind}`, profile?.display_name ?? "Guest", entry, identity);
+
 
   const {
     extensionInstalled,
@@ -185,6 +202,18 @@ function Theater({ entry }: { entry: CallEntry }) {
   useEffect(() => {
     if (mediaError) toast(`${mediaError} You'll still see everyone else.`);
   }, [mediaError]);
+
+  /* We were removed by a member, or arrived after the room was locked. */
+  useEffect(() => {
+    if (!removedNotice) return;
+    toast.error(
+      removedNotice === "locked"
+        ? "This room is locked — no new people can join right now."
+        : "A member of this room removed you from the call.",
+    );
+    navigate({ to: "/" });
+  }, [removedNotice, navigate]);
+
 
   useEffect(() => {
     if (stageScreenRef.current) stageScreenRef.current.srcObject = stageStream;
@@ -312,9 +341,31 @@ function Theater({ entry }: { entry: CallEntry }) {
             extensionInstalled={extensionInstalled}
             localStream={localStream}
           />
+          {canModerate ? (
+            <Button
+              variant={locked ? "destructive" : "secondary"}
+              className="rounded-full"
+              onClick={() => {
+                setRoomLocked(!locked);
+                toast.success(
+                  locked
+                    ? "Room unlocked — friends can join again."
+                    : "Room locked — nobody new can join.",
+                );
+              }}
+            >
+              {locked ? <Lock className="mr-1 h-4 w-4" /> : <LockOpen className="mr-1 h-4 w-4" />}
+              {locked ? "Locked" : "Lock room"}
+            </Button>
+          ) : (
+            locked && (
+              <StatusPill icon={<Lock className="h-3.5 w-3.5" />} label="Room locked" active />
+            )
+          )}
           <Button variant="secondary" className="rounded-full" onClick={copyLink}>
             <Copy className="mr-1 h-4 w-4" /> Invite
           </Button>
+
           <Button
             variant="ghost"
             className="rounded-full text-muted-foreground"
@@ -502,8 +553,27 @@ function Theater({ entry }: { entry: CallEntry }) {
                 onTogglePin={() => togglePin(peer.id)}
                 className={peer.connected ? "opacity-100" : "opacity-60"}
               />
+              {canModerate && !peer.verified && (
+                <div className="flex items-center justify-between gap-2 rounded-full border border-dashed border-border px-3 py-1.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Guest
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 rounded-full text-xs text-destructive"
+                    onClick={() => {
+                      removeParticipant(peer.id);
+                      toast.success(`${peer.name} was removed from the room.`);
+                    }}
+                  >
+                    <UserX className="mr-1 h-3.5 w-3.5" /> Remove
+                  </Button>
+                </div>
+              )}
               {peer.screen && <PeerScreen stream={peer.screen} name={peer.name} />}
             </div>
+
           ))}
 
           {peers.length === 0 && (

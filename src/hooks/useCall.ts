@@ -15,6 +15,9 @@ export type CallPeer = {
   camera: MediaStream | null;
   screen: MediaStream | null;
   connected: boolean;
+  /* moderation */
+  verified: boolean;
+  userId: string | null;
   /* diagnostics */
   connectionState: RTCPeerConnectionState | "new";
   iceState: RTCIceConnectionState | "new";
@@ -24,7 +27,23 @@ export type CallPeer = {
   hasVideo: boolean;
 };
 
-type Meta = { name: string; muted: boolean; cameraOff: boolean; screenId: string | null };
+type Meta = {
+  name: string;
+  muted: boolean;
+  cameraOff: boolean;
+  screenId: string | null;
+  verified: boolean;
+  userId: string | null;
+  locked: boolean;
+};
+
+type ModerationPayload = {
+  from: string;
+  action: "remove";
+  targetId: string;
+  reason: "removed" | "locked";
+};
+
 
 type PeerConn = {
   pc: RTCPeerConnection;
@@ -55,7 +74,14 @@ export type CallDevices = {
   startCameraOff?: boolean;
 };
 
-export function useCall(roomKey: string, displayName: string, devices: CallDevices = {}) {
+export type CallIdentity = { userId: string | null; verified: boolean };
+
+export function useCall(
+  roomKey: string,
+  displayName: string,
+  devices: CallDevices = {},
+  identity: CallIdentity = { userId: null, verified: false },
+) {
   const devicesRef = useRef(devices);
   const idRef = useRef<string>("");
   if (!idRef.current) idRef.current = newId();
@@ -71,6 +97,9 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
     muted: !!devices.startMuted,
     cameraOff: !!devices.startCameraOff,
     screenId: null,
+    verified: identity.verified,
+    userId: identity.userId,
+    locked: false,
   });
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -82,10 +111,19 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
   const [cameraOff, setCameraOff] = useState(!!devices.startCameraOff);
   const [relayAvailable, setRelayAvailable] = useState(false);
   const [usingRelay, setUsingRelay] = useState(false);
+  const [locked, setLockedState] = useState(false);
+  const [removedNotice, setRemovedNotice] = useState<"removed" | "locked" | null>(null);
 
   const iceRef = useRef<RTCConfiguration>(DEFAULT_ICE);
   const relayOnlyRef = useRef(new Set<string>());
   const relayAvailableRef = useRef(false);
+  /* Moderation bookkeeping: who was already in the room when it was locked,
+     and who a verified member has thrown out. */
+  const admittedRef = useRef(new Set<string>());
+  const removedIdsRef = useRef(new Set<string>());
+  const removedUsersRef = useRef(new Set<string>());
+  const lockedRef = useRef(false);
+  const removedSelfRef = useRef(false);
 
   const syncPeers = useCallback(() => {
     const list: CallPeer[] = [];
@@ -103,6 +141,8 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
         camera,
         screen,
         connected: conn?.connected ?? false,
+        verified: meta.verified,
+        userId: meta.userId,
         connectionState: conn?.pc.connectionState ?? "new",
         iceState: conn?.pc.iceConnectionState ?? "new",
         route: conn?.route ?? null,
@@ -114,13 +154,19 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
     setPeers(list);
   }, [myId]);
 
+
   const signal = useCallback((payload: SignalPayload) => {
     channelRef.current?.send({ type: "broadcast", event: "signal", payload });
+  }, []);
+
+  const moderate = useCallback((payload: ModerationPayload) => {
+    channelRef.current?.send({ type: "broadcast", event: "moderation", payload });
   }, []);
 
   const pushMeta = useCallback(() => {
     channelRef.current?.track({ id: myId, ...selfMetaRef.current });
   }, [myId]);
+
 
   const ensurePeer = useCallback(
     (remoteId: string): PeerConn => {
@@ -262,23 +308,87 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
       });
       channelRef.current = channel;
 
+      const teardownSelf = (reason: "removed" | "locked") => {
+        if (removedSelfRef.current) return;
+        removedSelfRef.current = true;
+        for (const id of [...peersRef.current.keys()]) dropPeer(id);
+        metaRef.current.clear();
+        const ch = channelRef.current;
+        channelRef.current = null;
+        if (ch) void supabase.removeChannel(ch);
+        localRef.current?.getTracks().forEach((t) => t.stop());
+        localRef.current = null;
+        setLocalStream(null);
+        screenRef.current?.getTracks().forEach((t) => t.stop());
+        screenRef.current = null;
+        setScreenStream(null);
+        setJoined(false);
+        setRemovedNotice(reason);
+      };
+
       channel.on("presence", { event: "sync" }, () => {
         const state = channel.presenceState<Meta & { id: string }>();
         const present = new Set(Object.keys(state));
+        let anyoneLocked = false;
         for (const [id, entries] of Object.entries(state)) {
           const meta = entries[0];
           if (!meta) continue;
+          if (meta.verified && meta.locked) anyoneLocked = true;
           metaRef.current.set(id, {
             name: meta.name,
             muted: meta.muted,
             cameraOff: meta.cameraOff,
             screenId: meta.screenId ?? null,
+            verified: !!meta.verified,
+            userId: meta.userId ?? null,
+            locked: !!meta.locked,
           });
+
+          // Verified members police the room: kick anyone already removed, and
+          // anyone arriving after the room was locked.
+          if (id !== myId && selfMetaRef.current.verified) {
+            const banned =
+              removedIdsRef.current.has(id) ||
+              (meta.userId ? removedUsersRef.current.has(meta.userId) : false);
+            const lateJoiner = lockedRef.current && !admittedRef.current.has(id);
+            if (banned || lateJoiner) {
+              moderate({
+                from: myId,
+                action: "remove",
+                targetId: id,
+                reason: banned ? "removed" : "locked",
+              });
+              dropPeer(id);
+              continue;
+            }
+            if (!lockedRef.current) admittedRef.current.add(id);
+          }
+
           // The peer with the lower id makes the first offer.
           if (id !== myId && myId < id) ensurePeer(id);
         }
+        if (anyoneLocked !== lockedRef.current && !selfMetaRef.current.verified) {
+          lockedRef.current = anyoneLocked;
+        }
+        setLockedState(anyoneLocked || selfMetaRef.current.locked);
         for (const id of [...metaRef.current.keys()]) if (!present.has(id)) dropPeer(id);
         syncPeers();
+      });
+
+      channel.on("broadcast", { event: "moderation" }, ({ payload }) => {
+        const msg = payload as ModerationPayload;
+        const fromMeta = metaRef.current.get(msg.from);
+        // Only signed-in members can moderate.
+        if (!fromMeta?.verified) return;
+        if (msg.action !== "remove") return;
+        if (msg.targetId === myId) {
+          teardownSelf(msg.reason);
+          return;
+        }
+        removedIdsRef.current.add(msg.targetId);
+        const targetMeta = metaRef.current.get(msg.targetId);
+        if (targetMeta?.userId) removedUsersRef.current.add(targetMeta.userId);
+        dropPeer(msg.targetId);
       });
 
       channel.on("broadcast", { event: "signal" }, async ({ payload }) => {
@@ -306,6 +416,7 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
           /* ignore out-of-order signalling errors */
         }
       });
+
 
       channel.subscribe(async (status) => {
         if (status !== "SUBSCRIBED") return;
@@ -373,6 +484,45 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
     if (joined) pushMeta();
   }, [displayName, joined, pushMeta]);
 
+  /* Keep our signed-in status in sync (the profile may load after we join). */
+  useEffect(() => {
+    selfMetaRef.current = {
+      ...selfMetaRef.current,
+      verified: identity.verified,
+      userId: identity.userId,
+    };
+    if (joined) pushMeta();
+  }, [identity.verified, identity.userId, joined, pushMeta]);
+
+  /* Signed-in members can throw a guest out of the room. */
+  const removeParticipant = useCallback(
+    (targetId: string) => {
+      if (!selfMetaRef.current.verified) return;
+      const targetMeta = metaRef.current.get(targetId);
+      removedIdsRef.current.add(targetId);
+      if (targetMeta?.userId) removedUsersRef.current.add(targetMeta.userId);
+      moderate({ from: myId, action: "remove", targetId, reason: "removed" });
+      dropPeer(targetId);
+    },
+    [dropPeer, moderate, myId],
+  );
+
+  /* Signed-in members can lock the room so nobody new can join. */
+  const setRoomLocked = useCallback(
+    (next: boolean) => {
+      if (!selfMetaRef.current.verified) return;
+      lockedRef.current = next;
+      if (next) {
+        admittedRef.current = new Set(metaRef.current.keys());
+      }
+      selfMetaRef.current = { ...selfMetaRef.current, locked: next };
+      setLockedState(next);
+      pushMeta();
+    },
+    [pushMeta],
+  );
+
+
   const toggleMic = useCallback(() => {
     setMuted((prev) => {
       const next = !prev;
@@ -435,6 +585,12 @@ export function useCall(roomKey: string, displayName: string, devices: CallDevic
     stopShare,
     relayAvailable,
     usingRelay,
+    locked,
+    setRoomLocked,
+    removeParticipant,
+    removedNotice,
+    canModerate: identity.verified,
     iceServerCount: iceRef.current.iceServers?.length ?? 0,
+
   };
 }
