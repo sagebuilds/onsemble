@@ -85,9 +85,14 @@ export function RoomInvites({
       const result = await invite({
         data: { roomId, email: address, origin: window.location.origin },
       });
-      toast.success(result.sent ? `Invitation resent to ${address}.` : "Couldn't email that one.");
-    } catch {
-      toast.error("Couldn't resend that invite.");
+      if (result.sent) toast.success(`Invitation resent to ${address}.`);
+      else toast.warning(`Couldn't email that one${result.reason ? `: ${result.reason}` : ""}.`);
+    } catch (err) {
+      toast.error(
+        err instanceof Error && err.message
+          ? `Couldn't resend that invite: ${err.message}`
+          : "Couldn't resend that invite.",
+      );
     }
   };
 
