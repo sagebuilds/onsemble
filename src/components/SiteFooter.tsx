@@ -23,8 +23,8 @@ export function SiteFooter() {
             <span className="font-display text-2xl font-semibold tracking-tight">Onsemble</span>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            Virtual rooms for long-distance friends: video chat, shared screens, a bookshelf you
-            build together, and streaming that stays in sync.
+            Onsemble is one shared room for the people you love: video chat, screen sharing,
+            streaming in sync, a bookshelf you build together, and a private photo album.
           </p>
           <a
             href={`mailto:${CONTACT_EMAIL}`}
