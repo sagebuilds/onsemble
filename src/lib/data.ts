@@ -77,6 +77,24 @@ export function useRoom(roomId: string) {
   });
 }
 
+/** Resolve a persistent room from its invite code (members only, via RLS). */
+export function useRoomByCode(code: string | null) {
+  return useQuery({
+    queryKey: ["room-by-code", code],
+    enabled: !!code,
+    queryFn: async () => {
+      if (!code) return null;
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("id, name, kind, code")
+        .ilike("code", code)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+  });
+}
+
 export function useRoomMembers(roomId: string) {
   return useQuery({
     queryKey: ["room-members", roomId],
