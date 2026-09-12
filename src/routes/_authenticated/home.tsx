@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppHeader } from "@/components/AppHeader";
+import { PhotoCarousel } from "@/components/PhotoCarousel";
 import { supabase } from "@/integrations/supabase/client";
 import { generateRoomCode, ROOM_KINDS, type RoomKind } from "@/lib/room";
 import { currentUserEmail, currentUserId, useMyInvites, useMyRooms } from "@/lib/data";
