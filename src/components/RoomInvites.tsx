@@ -38,14 +38,7 @@ export function RoomInvites({
   const [busy, setBusy] = useState(false);
 
   const link = inviteLink(code);
-
-  const mailtoFor = (address: string) => {
-    const subject = encodeURIComponent(`Join me in ${roomName} on Onsemble`);
-    const body = encodeURIComponent(
-      `Hi!\n\nI made us a room on Onsemble called "${roomName}" — shared bookshelf, photos and synced movie nights.\n\nJoin here: ${link}\nOr use the room code: ${code}\n\nSee you there!`,
-    );
-    return `mailto:${encodeURIComponent(address)}?subject=${subject}&body=${body}`;
-  };
+  const invite = useServerFn(sendRoomInvite);
 
   const sendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
