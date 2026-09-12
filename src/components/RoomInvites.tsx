@@ -60,22 +60,31 @@ export function RoomInvites({
     }
     setBusy(true);
     try {
-      const uid = await currentUserId();
-      if (!uid) throw new Error("no user");
-      const { error: insertError } = await supabase.from("room_invites").insert({
-        room_id: roomId,
-        email: address,
-        invited_by: uid,
+      const result = await invite({
+        data: { roomId, email: address, origin: window.location.origin },
       });
-      if (insertError) throw insertError;
       await qc.invalidateQueries({ queryKey: ["room-invites", roomId] });
       setEmail("");
-      toast.success(`${address} is now on the invite list.`);
-      window.open(mailtoFor(address), "_blank");
+      toast.success(
+        result.sent
+          ? `Invitation emailed to ${address}.`
+          : `${address} is on the invite list — share the link with them directly.`,
+      );
     } catch {
-      toast.error("Couldn't add that invite. Please try again.");
+      toast.error("Couldn't send that invite. Please try again.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const resend = async (address: string) => {
+    try {
+      const result = await invite({
+        data: { roomId, email: address, origin: window.location.origin },
+      });
+      toast.success(result.sent ? `Invitation resent to ${address}.` : "Couldn't email that one.");
+    } catch {
+      toast.error("Couldn't resend that invite.");
     }
   };
 
