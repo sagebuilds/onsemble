@@ -134,7 +134,7 @@ function Theater({ entry }: { entry: CallEntry }) {
     removeParticipant,
     removedNotice,
     canModerate,
-  } = useCall(`${code}:${kind}`, profile?.display_name ?? "Guest", entry, identity);
+  } = useCall(code, profile?.display_name ?? "Guest", entry, identity);
 
 
   const {
@@ -142,7 +142,7 @@ function Theater({ entry }: { entry: CallEntry }) {
     service: detectedService,
     lastEvent,
     syncActive,
-  } = useSync(`${code}:${kind}`, code);
+  } = useSync(code, code);
   const service = detectedService ?? manualService;
 
   const remoteScreen = peers.find((p) => p.screen)?.screen ?? null;
