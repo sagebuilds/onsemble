@@ -194,7 +194,8 @@ function Theater({ entry }: { entry: CallEntry }) {
     participants[0];
   const others = participants.filter((p) => p.id !== featured?.id);
   const togglePin = (id: string) => setPinnedId((cur) => (cur === id ? null : id));
-  const showPeopleOnStage = !!pinnedId || (!stageStream && participants.length > 1);
+  /* The call is the main event: people hold the stage unless a screen is being shared. */
+  const showPeopleOnStage = !!pinnedId || !stageStream;
 
   /* Dim the lights: switch the whole app to theater mode. */
   useEffect(() => {
@@ -486,7 +487,7 @@ function Theater({ entry }: { entry: CallEntry }) {
                       : "Whoever is talking takes the big frame."}
                 </p>
               </div>
-            ) : stageStream ? (
+            ) : (
               <div className="w-full">
                 <video
                   ref={stageScreenRef}
@@ -500,34 +501,6 @@ function Theater({ entry }: { entry: CallEntry }) {
                     ? "You're sharing your screen with the room."
                     : `${remoteSharer ?? "A friend"} is sharing their screen.`}
                 </p>
-              </div>
-            ) : (
-              <div className="text-center">
-                <div className="mx-auto h-1.5 w-40 animate-pulse rounded-full bg-primary/40" />
-                <h2 className="mt-6 font-display text-3xl font-semibold">
-                  {syncActive
-                    ? `Playing in sync on ${service}`
-                    : extensionInstalled
-                      ? "Waiting for a show…"
-                      : "Add the Onsemble extension to sync"}
-                </h2>
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                  {syncActive
-                    ? lastEvent
-                      ? `Last move: ${lastEvent.action} at ${formatTime(lastEvent.currentTime)}. Keep this tab open — play, pause and seek stay matched for everyone.`
-                      : "Keep this tab open — play, pause and seek stay matched for everyone."
-                    : extensionInstalled
-                      ? "Open YouTube, Netflix, Disney+, Apple TV+ or Prime Video in another tab and press play — everyone here follows along."
-                      : "Install the extension and keep this tab open, then play something in another tab and the whole room stays in step. You can also just share your screen."}
-                </p>
-                {!extensionInstalled && (
-                  <Link
-                    to="/extension"
-                    className="mt-5 inline-block rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
-                  >
-                    Get the extension
-                  </Link>
-                )}
               </div>
             )}
           </div>
@@ -555,9 +528,40 @@ function Theater({ entry }: { entry: CallEntry }) {
         </div>
 
         <aside className="flex flex-col gap-3 rounded-3xl border border-border bg-card/60 p-4">
+          <div className="rounded-2xl border border-primary/25 bg-primary/5 p-4">
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary">
+              <Radio className="h-3.5 w-3.5" /> Stream together
+            </p>
+            <h2 className="mt-2 font-display text-lg font-semibold leading-tight">
+              {syncActive
+                ? `Playing in sync on ${service}`
+                : extensionInstalled
+                  ? "Waiting for a show…"
+                  : "Add the extension to sync"}
+            </h2>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {syncActive
+                ? lastEvent
+                  ? `Last move: ${lastEvent.action} at ${formatTime(lastEvent.currentTime)}. Keep this tab open — play, pause and seek stay matched.`
+                  : "Keep this tab open — play, pause and seek stay matched for everyone."
+                : extensionInstalled
+                  ? "Open YouTube, Netflix, Disney+, Apple TV+ or Prime Video in another tab and press play."
+                  : "Install the extension and keep this tab open, then play something in another tab. You can also just share your screen."}
+            </p>
+            {!extensionInstalled && (
+              <Link
+                to="/extension"
+                className="mt-3 inline-block rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground"
+              >
+                Get the extension
+              </Link>
+            )}
+          </div>
+
           <p className="px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
             Video chat
           </p>
+
 
           <VideoTile
             ref={selfVideoRef}
