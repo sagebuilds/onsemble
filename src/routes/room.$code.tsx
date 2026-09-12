@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy,
   LayoutGrid,
+  Library,
   Lock,
   LockOpen,
   Maximize2,
