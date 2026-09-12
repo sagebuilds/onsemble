@@ -22,6 +22,7 @@ import {
 } from "@/lib/data";
 
 export const Route = createFileRoute("/_authenticated/rooms/$roomId")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Shared room — Onsemble" },

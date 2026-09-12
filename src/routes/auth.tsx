@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/auth")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "Sign in to Onsemble — Your shared rooms" },

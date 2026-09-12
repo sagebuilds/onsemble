@@ -35,6 +35,7 @@ import { STREAMING_SERVICES, type RoomKind } from "@/lib/room";
 
 
 export const Route = createFileRoute("/room/$code")({
+  staticData: { sitemap: false },
   validateSearch: (search: Record<string, unknown>): { kind: RoomKind } => ({
     kind: search["kind"] === "date" ? "date" : "friendship",
   }),
