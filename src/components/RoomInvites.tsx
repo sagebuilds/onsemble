@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Copy, Mail, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, useRoomInvites } from "@/lib/data";
+import { useRoomInvites } from "@/lib/data";
+import { sendRoomInvite } from "@/lib/invites.functions";
 
 const emailSchema = z
   .string()
@@ -36,14 +38,7 @@ export function RoomInvites({
   const [busy, setBusy] = useState(false);
 
   const link = inviteLink(code);
-
-  const mailtoFor = (address: string) => {
-    const subject = encodeURIComponent(`Join me in ${roomName} on Onsemble`);
-    const body = encodeURIComponent(
-      `Hi!\n\nI made us a room on Onsemble called "${roomName}" — shared bookshelf, photos and synced movie nights.\n\nJoin here: ${link}\nOr use the room code: ${code}\n\nSee you there!`,
-    );
-    return `mailto:${encodeURIComponent(address)}?subject=${subject}&body=${body}`;
-  };
+  const invite = useServerFn(sendRoomInvite);
 
   const sendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,22 +55,31 @@ export function RoomInvites({
     }
     setBusy(true);
     try {
-      const uid = await currentUserId();
-      if (!uid) throw new Error("no user");
-      const { error: insertError } = await supabase.from("room_invites").insert({
-        room_id: roomId,
-        email: address,
-        invited_by: uid,
+      const result = await invite({
+        data: { roomId, email: address, origin: window.location.origin },
       });
-      if (insertError) throw insertError;
       await qc.invalidateQueries({ queryKey: ["room-invites", roomId] });
       setEmail("");
-      toast.success(`${address} is now on the invite list.`);
-      window.open(mailtoFor(address), "_blank");
+      toast.success(
+        result.sent
+          ? `Invitation emailed to ${address}.`
+          : `${address} is on the invite list — share the link with them directly.`,
+      );
     } catch {
-      toast.error("Couldn't add that invite. Please try again.");
+      toast.error("Couldn't send that invite. Please try again.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const resend = async (address: string) => {
+    try {
+      const result = await invite({
+        data: { roomId, email: address, origin: window.location.origin },
+      });
+      toast.success(result.sent ? `Invitation resent to ${address}.` : "Couldn't email that one.");
+    } catch {
+      toast.error("Couldn't resend that invite.");
     }
   };
 
@@ -123,8 +127,9 @@ export function RoomInvites({
       </form>
       {error && <p className="mt-2 text-xs font-medium text-destructive">{error}</p>}
       <p className="mt-2 text-xs text-muted-foreground">
-        We'll open your email app with the invite ready to send, and keep the person on the pending
-        list until they join.
+        We'll email them an invitation — people who already have an account can join in one tap,
+        and newcomers get a quick intro plus a sign-up link. They stay on the pending list until
+        they join.
       </p>
 
       <div className="mt-5">
@@ -149,7 +154,9 @@ export function RoomInvites({
                 </span>
                 <span className="flex items-center gap-1">
                   <Button asChild size="sm" variant="ghost" className="rounded-full">
-                    <a href={mailtoFor(invite.email)}>Resend</a>
+                    <button type="button" onClick={() => resend(invite.email)}>
+                      Resend
+                    </button>
                   </Button>
                   <Button
                     size="sm"
