@@ -148,6 +148,13 @@ function RootComponent() {
       }
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      // After signing in (including the Google redirect back to "/"), land on My rooms.
+      if (event === "SIGNED_IN" && typeof window !== "undefined") {
+        const path = window.location.pathname;
+        if (path === "/" || path === "/auth") {
+          router.navigate({ to: "/home", replace: true });
+        }
+      }
     });
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);
