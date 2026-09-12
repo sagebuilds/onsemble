@@ -60,13 +60,21 @@ export function RoomInvites({
       });
       await qc.invalidateQueries({ queryKey: ["room-invites", roomId] });
       setEmail("");
-      toast.success(
-        result.sent
-          ? `Invitation emailed to ${address}.`
-          : `${address} is on the invite list — share the link with them directly.`,
+      if (result.sent) {
+        toast.success(`Invitation emailed to ${address}.`);
+      } else {
+        toast.warning(
+          `${address} is on the invite list, but the email didn't go out${
+            result.reason ? `: ${result.reason}` : ""
+          }. Share the room link with them directly.`,
+        );
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error && err.message
+          ? `Couldn't send that invite: ${err.message}`
+          : "Couldn't send that invite. Please try again.",
       );
-    } catch {
-      toast.error("Couldn't send that invite. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -77,9 +85,14 @@ export function RoomInvites({
       const result = await invite({
         data: { roomId, email: address, origin: window.location.origin },
       });
-      toast.success(result.sent ? `Invitation resent to ${address}.` : "Couldn't email that one.");
-    } catch {
-      toast.error("Couldn't resend that invite.");
+      if (result.sent) toast.success(`Invitation resent to ${address}.`);
+      else toast.warning(`Couldn't email that one${result.reason ? `: ${result.reason}` : ""}.`);
+    } catch (err) {
+      toast.error(
+        err instanceof Error && err.message
+          ? `Couldn't resend that invite: ${err.message}`
+          : "Couldn't resend that invite.",
+      );
     }
   };
 
