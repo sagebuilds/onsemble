@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Copy, Mail, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, useRoomInvites } from "@/lib/data";
+import { useRoomInvites } from "@/lib/data";
+import { sendRoomInvite } from "@/lib/invites.functions";
 
 const emailSchema = z
   .string()
