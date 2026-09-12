@@ -108,6 +108,7 @@ function Theater({ entry }: { entry: CallEntry }) {
   const [manualService, setManualService] = useState<string | null>(null);
   const [layout, setLayout] = useState<"speaker" | "grid">("speaker");
   const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const { data: savedRoom } = useRoomByCode(session ? code : null);
 
   const identity = useMemo(
     () => ({ userId: session?.user?.id ?? null, verified: !!session }),
