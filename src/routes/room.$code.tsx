@@ -194,7 +194,8 @@ function Theater({ entry }: { entry: CallEntry }) {
     participants[0];
   const others = participants.filter((p) => p.id !== featured?.id);
   const togglePin = (id: string) => setPinnedId((cur) => (cur === id ? null : id));
-  const showPeopleOnStage = !!pinnedId || (!stageStream && participants.length > 1);
+  /* The call is the main event: people hold the stage unless a screen is being shared. */
+  const showPeopleOnStage = !!pinnedId || !stageStream;
 
   /* Dim the lights: switch the whole app to theater mode. */
   useEffect(() => {
