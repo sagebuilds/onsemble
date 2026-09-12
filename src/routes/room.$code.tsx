@@ -34,7 +34,7 @@ import { useSession } from "@/hooks/useSession";
 import { useSync } from "@/hooks/useSync";
 import { DeviceLobby, type CallEntry } from "@/components/DeviceLobby";
 import { CallDiagnostics } from "@/components/CallDiagnostics";
-import { useProfile } from "@/lib/data";
+import { useProfile, useRoomByCode } from "@/lib/data";
 import { STREAMING_SERVICES, type RoomKind } from "@/lib/room";
 
 
