@@ -59,15 +59,21 @@ export const sendRoomInvite = createServerFn({ method: "POST" })
     const joinUrl = `${data.origin.replace(/\/$/, "")}/join?code=${encodeURIComponent(room.code)}`;
     const templateName = hasAccount ? "room-invite-member" : "room-invite-new-user";
 
-    const result = await sendTemplateEmail(templateName, email, {
-      templateData: {
-        inviterName: profile?.display_name ?? "A friend",
-        roomName: room.name,
-        roomCode: room.code,
-        joinUrl,
-      },
-      idempotencyKey: `${templateName}-${inviteId}`,
-    });
-
-    return { sent: result.sent, hasAccount: !!hasAccount };
+    // The invite row is already saved; a failing email must not lose it.
+    try {
+      const result = await sendTemplateEmail(templateName, email, {
+        templateData: {
+          inviterName: profile?.display_name ?? "A friend",
+          roomName: room.name,
+          roomCode: room.code,
+          joinUrl,
+        },
+        idempotencyKey: `${templateName}-${inviteId}`,
+      });
+      return { sent: result.sent, hasAccount: !!hasAccount, reason: null as string | null };
+    } catch (error) {
+      console.error("[room-invite] email send failed", error);
+      const reason = error instanceof Error ? error.message : "Unknown email error";
+      return { sent: false, hasAccount: !!hasAccount, reason };
+    }
   });
