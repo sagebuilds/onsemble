@@ -369,6 +369,39 @@ function Theater({ entry }: { entry: CallEntry }) {
               <StatusPill icon={<Lock className="h-3.5 w-3.5" />} label="Room locked" active />
             )
           )}
+          {savedRoom && (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="secondary" className="rounded-full">
+                  <Library className="mr-1 h-4 w-4" /> Shelf &amp; photos
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="right"
+                className="w-full overflow-y-auto sm:max-w-2xl"
+              >
+                <SheetHeader>
+                  <SheetTitle className="font-display text-2xl">{savedRoom.name}</SheetTitle>
+                </SheetHeader>
+                <Tabs defaultValue="shelf" className="mt-6">
+                  <TabsList className="rounded-full">
+                    <TabsTrigger value="shelf" className="rounded-full">
+                      Bookshelf
+                    </TabsTrigger>
+                    <TabsTrigger value="photos" className="rounded-full">
+                      Photos
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="shelf" className="mt-5">
+                    <Bookshelf roomId={savedRoom.id} />
+                  </TabsContent>
+                  <TabsContent value="photos" className="mt-5">
+                    <PhotoAlbum roomId={savedRoom.id} />
+                  </TabsContent>
+                </Tabs>
+              </SheetContent>
+            </Sheet>
+          )}
           <Button variant="secondary" className="rounded-full" onClick={copyLink}>
             <Copy className="mr-1 h-4 w-4" /> Invite
           </Button>
