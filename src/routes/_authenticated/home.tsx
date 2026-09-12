@@ -11,6 +11,7 @@ import { generateRoomCode, ROOM_KINDS, type RoomKind } from "@/lib/room";
 import { currentUserEmail, currentUserId, useMyInvites, useMyRooms } from "@/lib/data";
 
 export const Route = createFileRoute("/_authenticated/home")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "My rooms — Onsemble" },

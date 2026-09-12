@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { useSession } from "@/hooks/useSession";
 
 export const Route = createFileRoute("/")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "Onsemble — A shared room for the people you love" },

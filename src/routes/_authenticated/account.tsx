@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { currentUserId, useProfile } from "@/lib/data";
 
 export const Route = createFileRoute("/_authenticated/account")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Your account — Onsemble" },

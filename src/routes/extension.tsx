@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/extension")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "Onsemble Chrome Extension — Sync any streaming tab" },

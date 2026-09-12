@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { currentUserEmail, currentUserId } from "@/lib/data";
 
 export const Route = createFileRoute("/join")({
+  staticData: { sitemap: false },
   ssr: false,
   validateSearch: (search: Record<string, unknown>) => ({
     code: typeof search["code"] === "string" ? search["code"] : "",
