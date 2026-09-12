@@ -53,6 +53,9 @@ type PeerConn = {
   streams: Map<string, MediaStream>;
   connected: boolean;
   route: "direct" | "relayed" | null;
+  /* Candidates that arrived before the remote description was applied. */
+  pendingCandidates: RTCIceCandidateInit[];
+  createdAt: number;
 };
 
 type SignalPayload = {
