@@ -189,6 +189,47 @@ export function usePhotos(roomId: string) {
   });
 }
 
+/** Recent photos across every room the signed-in person belongs to. */
+export function useAllMyPhotos(limit = 24) {
+  return useQuery({
+    queryKey: ["my-photos", limit],
+    queryFn: async () => {
+      const uid = await currentUserId();
+      if (!uid) return [];
+      const { data: memberships, error: memberError } = await supabase
+        .from("room_members")
+        .select("room_id")
+        .eq("user_id", uid);
+      if (memberError) throw memberError;
+      const ids = (memberships ?? []).map((m) => m.room_id);
+      if (ids.length === 0) return [];
+      const { data: rooms } = await supabase.from("rooms").select("id, name").in("id", ids);
+      const roomNames = new Map((rooms ?? []).map((r) => [r.id, r.name]));
+      const { data, error } = await supabase
+        .from("photos")
+        .select("id, room_id, caption, storage_path, created_at")
+        .in("room_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      const rows = data ?? [];
+      if (rows.length === 0) return [];
+      const { data: signed } = await supabase.storage
+        .from("room-photos")
+        .createSignedUrls(
+          rows.map((r) => r.storage_path),
+          60 * 60,
+        );
+      return rows.map((row, i) => ({
+        ...row,
+        roomName: roomNames.get(row.room_id) ?? "A room",
+        url: signed?.[i]?.signedUrl ?? null,
+      }));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export type RoomInvite = {
   id: string;
   room_id: string;
