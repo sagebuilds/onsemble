@@ -409,13 +409,26 @@ export function useCall(
             entry.ignoreOffer = !entry.polite && collision;
             if (entry.ignoreOffer) return;
             await pc.setRemoteDescription(msg.description);
+            // Candidates that raced ahead of the description can now be applied.
+            const queued = entry.pendingCandidates.splice(0);
+            for (const candidate of queued) {
+              try {
+                await pc.addIceCandidate(candidate);
+              } catch {
+                /* stale candidate */
+              }
+            }
             if (msg.description.type === "offer") {
               await pc.setLocalDescription();
               if (pc.localDescription)
                 signal({ from: myId, to: msg.from, description: pc.localDescription.toJSON() });
             }
           } else if (msg.candidate) {
-            await pc.addIceCandidate(msg.candidate);
+            if (!pc.remoteDescription) {
+              entry.pendingCandidates.push(msg.candidate);
+            } else {
+              await pc.addIceCandidate(msg.candidate);
+            }
           }
         } catch {
           /* ignore out-of-order signalling errors */
