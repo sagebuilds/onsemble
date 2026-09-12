@@ -528,9 +528,40 @@ function Theater({ entry }: { entry: CallEntry }) {
         </div>
 
         <aside className="flex flex-col gap-3 rounded-3xl border border-border bg-card/60 p-4">
+          <div className="rounded-2xl border border-primary/25 bg-primary/5 p-4">
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary">
+              <Radio className="h-3.5 w-3.5" /> Stream together
+            </p>
+            <h2 className="mt-2 font-display text-lg font-semibold leading-tight">
+              {syncActive
+                ? `Playing in sync on ${service}`
+                : extensionInstalled
+                  ? "Waiting for a show…"
+                  : "Add the extension to sync"}
+            </h2>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {syncActive
+                ? lastEvent
+                  ? `Last move: ${lastEvent.action} at ${formatTime(lastEvent.currentTime)}. Keep this tab open — play, pause and seek stay matched.`
+                  : "Keep this tab open — play, pause and seek stay matched for everyone."
+                : extensionInstalled
+                  ? "Open YouTube, Netflix, Disney+, Apple TV+ or Prime Video in another tab and press play."
+                  : "Install the extension and keep this tab open, then play something in another tab. You can also just share your screen."}
+            </p>
+            {!extensionInstalled && (
+              <Link
+                to="/extension"
+                className="mt-3 inline-block rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground"
+              >
+                Get the extension
+              </Link>
+            )}
+          </div>
+
           <p className="px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
             Video chat
           </p>
+
 
           <VideoTile
             ref={selfVideoRef}
