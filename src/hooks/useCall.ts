@@ -496,6 +496,35 @@ export function useCall(
     return () => clearInterval(timer);
   }, [syncPeers]);
 
+  /* Watchdog: if an offer or answer went missing, rebuild the connection. */
+  useEffect(() => {
+    const timer = setInterval(() => {
+      for (const id of metaRef.current.keys()) {
+        if (id === myId) continue;
+        const entry = peersRef.current.get(id);
+        if (!entry) {
+          // We never started this connection (missed presence event).
+          if (myId < id) ensurePeerRef.current?.(id);
+          continue;
+        }
+        if (entry.connected) continue;
+        const stale = Date.now() - entry.createdAt > 12000;
+        const dead =
+          entry.pc.connectionState === "failed" || entry.pc.iceConnectionState === "failed";
+        if (!stale && !dead) continue;
+        entry.pc.onicecandidate = null;
+        entry.pc.ontrack = null;
+        entry.pc.onnegotiationneeded = null;
+        entry.pc.onconnectionstatechange = null;
+        entry.pc.close();
+        peersRef.current.delete(id);
+        if (myId < id) ensurePeerRef.current?.(id);
+      }
+      syncPeers();
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [myId, syncPeers]);
+
   /* Keep the name we advertise in sync. */
   useEffect(() => {
     selfMetaRef.current = { ...selfMetaRef.current, name: displayName };
