@@ -487,7 +487,7 @@ function Theater({ entry }: { entry: CallEntry }) {
                       : "Whoever is talking takes the big frame."}
                 </p>
               </div>
-            ) : stageStream ? (
+            ) : (
               <div className="w-full">
                 <video
                   ref={stageScreenRef}
@@ -501,34 +501,6 @@ function Theater({ entry }: { entry: CallEntry }) {
                     ? "You're sharing your screen with the room."
                     : `${remoteSharer ?? "A friend"} is sharing their screen.`}
                 </p>
-              </div>
-            ) : (
-              <div className="text-center">
-                <div className="mx-auto h-1.5 w-40 animate-pulse rounded-full bg-primary/40" />
-                <h2 className="mt-6 font-display text-3xl font-semibold">
-                  {syncActive
-                    ? `Playing in sync on ${service}`
-                    : extensionInstalled
-                      ? "Waiting for a show…"
-                      : "Add the Onsemble extension to sync"}
-                </h2>
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                  {syncActive
-                    ? lastEvent
-                      ? `Last move: ${lastEvent.action} at ${formatTime(lastEvent.currentTime)}. Keep this tab open — play, pause and seek stay matched for everyone.`
-                      : "Keep this tab open — play, pause and seek stay matched for everyone."
-                    : extensionInstalled
-                      ? "Open YouTube, Netflix, Disney+, Apple TV+ or Prime Video in another tab and press play — everyone here follows along."
-                      : "Install the extension and keep this tab open, then play something in another tab and the whole room stays in step. You can also just share your screen."}
-                </p>
-                {!extensionInstalled && (
-                  <Link
-                    to="/extension"
-                    className="mt-5 inline-block rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
-                  >
-                    Get the extension
-                  </Link>
-                )}
               </div>
             )}
           </div>
