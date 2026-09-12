@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy,
   LayoutGrid,
+  Library,
   Lock,
   LockOpen,
   Maximize2,
@@ -23,6 +24,10 @@ import {
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bookshelf } from "@/components/Bookshelf";
+import { PhotoAlbum } from "@/components/PhotoAlbum";
 import { VideoTile } from "@/components/VideoTile";
 import { useCall } from "@/hooks/useCall";
 import { useActiveSpeaker } from "@/hooks/useActiveSpeaker";
@@ -30,7 +35,7 @@ import { useSession } from "@/hooks/useSession";
 import { useSync } from "@/hooks/useSync";
 import { DeviceLobby, type CallEntry } from "@/components/DeviceLobby";
 import { CallDiagnostics } from "@/components/CallDiagnostics";
-import { useProfile } from "@/lib/data";
+import { useProfile, useRoomByCode } from "@/lib/data";
 import { STREAMING_SERVICES, type RoomKind } from "@/lib/room";
 
 
@@ -103,6 +108,7 @@ function Theater({ entry }: { entry: CallEntry }) {
   const [manualService, setManualService] = useState<string | null>(null);
   const [layout, setLayout] = useState<"speaker" | "grid">("speaker");
   const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const { data: savedRoom } = useRoomByCode(session ? code : null);
 
   const identity = useMemo(
     () => ({ userId: session?.user?.id ?? null, verified: !!session }),
@@ -362,6 +368,39 @@ function Theater({ entry }: { entry: CallEntry }) {
             locked && (
               <StatusPill icon={<Lock className="h-3.5 w-3.5" />} label="Room locked" active />
             )
+          )}
+          {savedRoom && (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="secondary" className="rounded-full">
+                  <Library className="mr-1 h-4 w-4" /> Shelf &amp; photos
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="right"
+                className="w-full overflow-y-auto sm:max-w-2xl"
+              >
+                <SheetHeader>
+                  <SheetTitle className="font-display text-2xl">{savedRoom.name}</SheetTitle>
+                </SheetHeader>
+                <Tabs defaultValue="shelf" className="mt-6">
+                  <TabsList className="rounded-full">
+                    <TabsTrigger value="shelf" className="rounded-full">
+                      Bookshelf
+                    </TabsTrigger>
+                    <TabsTrigger value="photos" className="rounded-full">
+                      Photos
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="shelf" className="mt-5">
+                    <Bookshelf roomId={savedRoom.id} />
+                  </TabsContent>
+                  <TabsContent value="photos" className="mt-5">
+                    <PhotoAlbum roomId={savedRoom.id} />
+                  </TabsContent>
+                </Tabs>
+              </SheetContent>
+            </Sheet>
           )}
           <Button variant="secondary" className="rounded-full" onClick={copyLink}>
             <Copy className="mr-1 h-4 w-4" /> Invite
