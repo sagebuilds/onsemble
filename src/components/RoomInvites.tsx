@@ -153,7 +153,9 @@ export function RoomInvites({
                 </span>
                 <span className="flex items-center gap-1">
                   <Button asChild size="sm" variant="ghost" className="rounded-full">
-                    <a href={mailtoFor(invite.email)}>Resend</a>
+                    <button type="button" onClick={() => resend(invite.email)}>
+                      Resend
+                    </button>
                   </Button>
                   <Button
                     size="sm"
