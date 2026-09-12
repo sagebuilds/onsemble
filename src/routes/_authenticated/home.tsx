@@ -166,6 +166,8 @@ function Home() {
           you like.
         </p>
 
+        <PhotoCarousel />
+
         {(invites ?? []).length > 0 && (
           <div className="mt-8 rounded-3xl border-2 border-dashed border-primary/50 bg-card p-6">
             <p className="flex items-center gap-2 font-display text-lg font-semibold">
