@@ -189,6 +189,8 @@ export function useCall(
         streams: new Map(),
         connected: false,
         route: null,
+        pendingCandidates: [],
+        createdAt: Date.now(),
       };
       peersRef.current.set(remoteId, entry);
       pc.oniceconnectionstatechange = () => syncPeers();
