@@ -127,8 +127,9 @@ export function RoomInvites({
       </form>
       {error && <p className="mt-2 text-xs font-medium text-destructive">{error}</p>}
       <p className="mt-2 text-xs text-muted-foreground">
-        We'll open your email app with the invite ready to send, and keep the person on the pending
-        list until they join.
+        We'll email them an invitation — people who already have an account can join in one tap,
+        and newcomers get a quick intro plus a sign-up link. They stay on the pending list until
+        they join.
       </p>
 
       <div className="mt-5">
