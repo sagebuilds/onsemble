@@ -1,6 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Clapperboard, Popcorn, Sparkles, MonitorPlay, Users, Heart } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Clapperboard,
+  Globe,
+  Heart,
+  House,
+  Images,
+  MonitorPlay,
+  MonitorUp,
+  NotebookPen,
+  Popcorn,
+  Sparkles,
+  Users,
+  Video as VideoIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -11,22 +26,108 @@ import { useSession } from "@/hooks/useSession";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Onsemble — Watch movies together, from anywhere" },
+      { title: "Onsemble — A shared room for the people you love" },
       {
         name: "description",
         content:
-          "Onsemble creates virtual rooms with video chat and synced playback across YouTube, Netflix, Disney+, Apple TV+ and Prime Video.",
+          "A private room for your partner, friends or family: video chat, screen sharing, synced streaming, a shared bookshelf and a photo album you build together.",
       },
-      { property: "og:title", content: "Onsemble — Watch together, from anywhere" },
+      { property: "og:title", content: "Onsemble — A shared room for the people you love" },
       {
         property: "og:description",
         content:
-          "Create a Friendship Room or Date Room, hop on video chat, and sync your streaming playback in real time.",
+          "Video chat, screen sharing, synced streaming, a shared bookshelf and a private photo album — for friends, lovers and family in different places.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Landing,
 });
+
+const AUDIENCES = [
+  {
+    icon: Heart,
+    tone: "bg-bubblegum",
+    title: "Long-distance partners",
+    body: "A date room that's just the two of you: dinner on a shared screen, a book each of you is reading, and an album of every night you've had.",
+  },
+  {
+    icon: Users,
+    tone: "bg-electric",
+    title: "Friends in different cities",
+    body: "Six people, one room, zero coordination. Drop in, talk over the movie, and leave the good stuff on the shelf for whoever shows up next.",
+  },
+  {
+    icon: House,
+    tone: "bg-mint",
+    title: "Family back home",
+    body: "Put a show on for the kids, share the screen with grandma, and keep the photo album somewhere everyone can add to it.",
+  },
+  {
+    icon: Globe,
+    tone: "bg-sunshine",
+    title: "Anyone in another time zone",
+    body: "Your room remembers where you left off — watch history, notes and photos stay put while the rest of you sleeps.",
+  },
+];
+
+const FEATURES = [
+  {
+    icon: BookOpen,
+    tone: "bg-electric",
+    title: "A bookshelf you build together",
+    body: "Shelve a book, movie or show for someone with a note about why. 'For you', 'for us', or 'for me' — then mark it finished when you get there.",
+  },
+  {
+    icon: Images,
+    tone: "bg-bubblegum",
+    title: "A private photo album",
+    body: "Upload a stack of photos, caption each one, and file them into albums. Only the people in your room can see them.",
+  },
+  {
+    icon: MonitorUp,
+    tone: "bg-mint",
+    title: "Screen sharing mid-call",
+    body: "Show your screen — the map, the spreadsheet, the hotel booking. It opens as its own tile so everyone can still see your face.",
+  },
+  {
+    icon: MonitorPlay,
+    tone: "bg-sunshine",
+    title: "Streaming that stays in sync",
+    body: "Play, pause and seek together on YouTube, Netflix, Disney+, Apple TV+ and Prime Video with the Onsemble Chrome extension.",
+  },
+  {
+    icon: VideoIcon,
+    tone: "bg-primary",
+    title: "Video chat that feels like a room",
+    body: "Real camera and mic connections with grid and speaker layouts, pin the person you're looking at, and the room dims when the lights go down.",
+  },
+  {
+    icon: Sparkles,
+    tone: "bg-accent",
+    title: "Rooms that remember you",
+    body: "Saved rooms with invitations, watch history and preferences. Lock the door so it's only ever your people inside.",
+  },
+];
+
+const STEPS = [
+  {
+    n: "01",
+    title: "Open your room",
+    body: "Pick a Friendship Room or a Date Room and name it. Your room gets its own invite code straight away.",
+  },
+  {
+    n: "02",
+    title: "Invite your people",
+    body: "Send an email invitation or share the code. There's no member limit — add as many as you like.",
+  },
+  {
+    n: "03",
+    title: "Press play together",
+    body: "Hop on camera, share a screen, put something on the shelf, and let the room keep everything for next time.",
+  },
+];
 
 function Landing() {
   const navigate = useNavigate();
@@ -62,6 +163,9 @@ function Landing() {
           <span className="font-display text-2xl font-semibold tracking-tight">Onsemble</span>
         </div>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-muted-foreground sm:gap-6">
+          <a href="#room" className="transition-colors hover:text-foreground">
+            What's in a room
+          </a>
           <Link to="/extension" className="transition-colors hover:text-foreground">
             Chrome extension
           </Link>
@@ -88,23 +192,23 @@ function Landing() {
             </Link>
           )}
         </nav>
-
       </header>
 
       <section
         id="create"
-        className="relative mx-auto grid w-full max-w-6xl scroll-mt-24 items-center gap-10 px-4 pb-24 pt-6 sm:px-8 sm:pt-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16"
+        className="relative mx-auto grid w-full max-w-6xl scroll-mt-24 items-center gap-10 px-4 pb-20 pt-6 sm:px-8 sm:pt-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16"
       >
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-bubblegum" /> Long-distance movie nights
+            <Sparkles className="h-3.5 w-3.5 text-bubblegum" /> A room of your own, anywhere they are
           </span>
           <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl lg:leading-[1.05]">
-            Press play <span className="text-joy">together</span>, even a thousand miles apart.
+            Feel <span className="text-joy">close</span>, even a thousand miles apart.
           </h1>
           <p className="mt-5 max-w-lg text-base text-muted-foreground sm:text-lg">
-            Spin up a room, see each other's faces, and keep every stream perfectly in sync — on
-            YouTube, Netflix, Disney+, Apple TV+ and Prime Video.
+            Onsemble is one shared room for the people you love. Talk face to face, share your
+            screen, keep every stream in sync, and leave each other books, notes and photos that
+            are still there when you come back.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -149,10 +253,10 @@ function Landing() {
 
           <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
             <span className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-electric" /> Live video chat
+              <VideoIcon className="h-4 w-4 text-electric" /> Live video chat
             </span>
             <span className="flex items-center gap-2">
-              <Heart className="h-4 w-4 text-bubblegum" /> Picture-in-Picture
+              <MonitorUp className="h-4 w-4 text-mint" /> Screen sharing
             </span>
             <span className="flex items-center gap-2">
               <MonitorPlay className="h-4 w-4 text-sunshine" /> 5 streaming services
@@ -168,11 +272,14 @@ function Landing() {
               <span className="h-3 w-3 rounded-full bg-mint" />
             </div>
             <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3">
-              <div className="flex aspect-video min-w-0 items-center justify-center rounded-2xl bg-joy text-center">
-                <span className="font-display text-lg font-semibold text-primary-foreground">
-                  Lights, camera…
+              <div className="flex aspect-video min-w-0 flex-col justify-between rounded-2xl bg-joy p-4 text-primary-foreground">
+                <span className="text-xs font-bold uppercase tracking-widest opacity-80">
+                  Mia's screen
+                </span>
+                <span className="font-display text-lg font-semibold">
+                  The hotel booking,
                   <br />
-                  sync!
+                  argued over live.
                 </span>
               </div>
               <div className="grid min-w-0 gap-3">
@@ -193,6 +300,200 @@ function Landing() {
               <span>Netflix · Sync active</span>
               <span>00:42:18</span>
             </div>
+          </div>
+
+          <div className="absolute -bottom-10 -left-4 hidden w-60 rotate-[-3deg] rounded-2xl border border-border bg-card p-4 shadow-playful sm:block">
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <BookOpen className="h-3.5 w-3.5 text-electric" /> For you
+            </p>
+            <p className="mt-2 font-display text-sm font-semibold">
+              "Chapter three made me think of you."
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              The Left Hand of Darkness · on the shelf
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative mx-auto w-full max-w-6xl px-4 py-16 sm:px-8">
+        <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+          For whoever you're missing
+        </h2>
+        <p className="mt-3 max-w-xl text-base text-muted-foreground">
+          The same room, whatever it's for. Nothing about it assumes you're in the same place.
+        </p>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {AUDIENCES.map((item) => (
+            <div
+              key={item.title}
+              className="rounded-3xl border border-border bg-card p-6 transition-shadow hover:shadow-playful"
+            >
+              <span
+                className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.tone} text-primary-foreground`}
+              >
+                <item.icon className="h-5 w-5" />
+              </span>
+              <h3 className="mt-4 font-display text-xl font-semibold">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="room" className="relative mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-16 sm:px-8">
+        <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+          Everything lives in <span className="text-joy">one room</span>
+        </h2>
+        <p className="mt-3 max-w-xl text-base text-muted-foreground">
+          Not six apps and a group chat. Your shelf, your album, your call and your stream sit in
+          the same place, with the same people in it.
+        </p>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((item) => (
+            <div
+              key={item.title}
+              className="flex flex-col rounded-3xl border border-border bg-card p-6 transition-shadow hover:shadow-playful"
+            >
+              <span
+                className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.tone} text-primary-foreground`}
+              >
+                <item.icon className="h-5 w-5" />
+              </span>
+              <h3 className="mt-4 font-display text-lg font-semibold">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="relative mx-auto w-full max-w-6xl px-4 py-16 sm:px-8">
+        <div className="grid items-center gap-10 rounded-[2.5rem] border border-border bg-card p-6 shadow-playful sm:p-10 lg:grid-cols-2 lg:gap-14">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-secondary-foreground">
+              <NotebookPen className="h-3.5 w-3.5 text-bubblegum" /> The bookshelf
+            </span>
+            <h2 className="mt-5 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+              Leave something for them to find
+            </h2>
+            <p className="mt-4 max-w-md text-base leading-relaxed text-muted-foreground">
+              Recommend a book to your partner with a note about why. Put a film on the shelf for
+              the group. Mark something finished, then argue about the ending in the same place.
+            </p>
+            <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
+              <li className="flex items-start gap-2.5">
+                <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-electric" />
+                Books, movies and shows, shelved for you, for us, or for me
+              </li>
+              <li className="flex items-start gap-2.5">
+                <NotebookPen className="mt-0.5 h-4 w-4 shrink-0 text-bubblegum" />
+                A personal note with every suggestion
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-sunshine" />
+                Suggestions and finished shelves, with ratings when you get there
+              </li>
+            </ul>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              {
+                icon: BookOpen,
+                tone: "bg-electric",
+                title: "The Left Hand of Darkness",
+                note: "“Read it before Sunday — chapter three is your whole argument about borders.”",
+                tag: "Suggestion · For you",
+              },
+              {
+                icon: Clapperboard,
+                tone: "bg-bubblegum",
+                title: "Pushing Daisies",
+                note: "“We said we'd finish this one. You said that. I'm holding you to it.”",
+                tag: "Suggestion · For us",
+              },
+              {
+                icon: MonitorPlay,
+                tone: "bg-mint",
+                title: "Chef's Table, S3",
+                note: "“Finished. Four stars. The dumpling episode is the one you'll cry at.”",
+                tag: "Finished · For me",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="flex items-start gap-4 rounded-3xl bg-secondary p-4"
+              >
+                <span
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${item.tone} text-primary-foreground`}
+                >
+                  <item.icon className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-display text-base font-semibold">{item.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.note}</p>
+                  <p className="mt-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    {item.tag}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative mx-auto w-full max-w-6xl px-4 py-16 sm:px-8">
+        <div className="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
+          <div>
+            <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+              How a room gets started
+            </h2>
+            <p className="mt-3 max-w-md text-base text-muted-foreground">
+              About a minute, and nobody needs an account to try it.
+            </p>
+          </div>
+          <ol className="grid gap-4">
+            {STEPS.map((step) => (
+              <li
+                key={step.n}
+                className="flex gap-4 rounded-3xl border border-border bg-card p-5"
+              >
+                <span className="font-display text-2xl font-semibold text-joy">{step.n}</span>
+                <span className="min-w-0">
+                  <span className="block font-display text-lg font-semibold">{step.title}</span>
+                  <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
+                    {step.body}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="relative mx-auto w-full max-w-6xl px-4 pb-24 sm:px-8">
+        <div className="rounded-[2.5rem] bg-joy px-6 py-12 text-center text-primary-foreground shadow-playful sm:px-12 sm:py-16">
+          <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+            Your people are one click away
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-base opacity-90">
+            Open a room, send the code, and see their faces tonight.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Button
+              size="lg"
+              variant="secondary"
+              className="rounded-full px-7 text-base"
+              onClick={createRoom}
+            >
+              <Clapperboard className="mr-1 h-5 w-5" /> Create a Room
+            </Button>
+            <Link
+              to="/auth"
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary-foreground/40 px-6 py-3 text-sm font-semibold transition-colors hover:bg-primary-foreground/10"
+            >
+              Sign in to your rooms <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </section>
