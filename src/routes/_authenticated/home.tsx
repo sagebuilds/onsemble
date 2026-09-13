@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { AppHeader } from "@/components/AppHeader";
 import { PhotoCarousel } from "@/components/PhotoCarousel";
 import { supabase } from "@/integrations/supabase/client";
-import { generateRoomCode, ROOM_KINDS, type RoomKind } from "@/lib/room";
+import { generateRoomCode, roomEmoji, ROOM_KINDS, type RoomKind } from "@/lib/room";
 import { currentUserEmail, currentUserId, useMyInvites, useMyRooms } from "@/lib/data";
 
 export const Route = createFileRoute("/_authenticated/home")({
@@ -285,7 +285,7 @@ function Home() {
                   params={{ roomId: room.id }}
                   className="rounded-3xl border border-border bg-card p-6 transition-shadow hover:shadow-playful"
                 >
-                  <span className="text-2xl">{room.kind === "date" ? "💞" : "🍿"}</span>
+                  <span className="text-2xl">{roomEmoji(room)}</span>
                   <p className="mt-2 font-display text-xl font-semibold">{room.name}</p>
                   <p className="mt-1 text-xs uppercase tracking-[0.25em] text-muted-foreground">
                     {room.code}

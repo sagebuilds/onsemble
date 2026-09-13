@@ -12,7 +12,8 @@ import { Bookshelf } from "@/components/Bookshelf";
 import { PhotoAlbum } from "@/components/PhotoAlbum";
 import { RoomInvites } from "@/components/RoomInvites";
 import { supabase } from "@/integrations/supabase/client";
-import { STREAMING_SERVICES } from "@/lib/room";
+import { RoomEmojiPicker } from "@/components/RoomEmojiPicker";
+import { roomEmoji, STREAMING_SERVICES } from "@/lib/room";
 import {
   currentUserId,
   useRoom,
@@ -91,6 +92,15 @@ function RoomHub() {
     setName(null);
   };
 
+  const setEmoji = async (emoji: string | null) => {
+    const { error } = await supabase.from("rooms").update({ emoji }).eq("id", roomId);
+    if (error) toast.error("Couldn't save that emoji.");
+    else {
+      await qc.invalidateQueries({ queryKey: ["room", roomId] });
+      await qc.invalidateQueries({ queryKey: ["my-rooms"] });
+    }
+  };
+
   const toggleService = async (service: string) => {
     const current = room.services ?? [];
     const next = current.includes(service)
@@ -137,7 +147,11 @@ function RoomHub() {
       <section className="relative mx-auto w-full max-w-6xl px-4 pb-24 sm:px-8">
         <div className="flex flex-wrap items-start justify-between gap-4 sm:gap-6">
           <div className="min-w-0">
-            <span className="text-3xl">{room.kind === "date" ? "💞" : "🍿"}</span>
+            <RoomEmojiPicker
+              className="-ml-2 text-3xl"
+              value={roomEmoji(room)}
+              onSelect={setEmoji}
+            />
             {name === null ? (
               <h1
                 className="mt-1 cursor-text font-display text-3xl font-semibold tracking-tight sm:text-5xl"
