@@ -426,18 +426,21 @@ export function useCall(
 
       channel.on("broadcast", { event: "moderation" }, ({ payload }) => {
         const msg = payload as ModerationPayload;
-        const fromMeta = metaRef.current.get(msg.from);
-        // Only signed-in members can moderate.
-        if (!fromMeta?.verified) return;
         if (msg.action !== "remove") return;
-        if (msg.targetId === myId) {
-          teardownSelf(msg.reason);
-          return;
-        }
-        removedIdsRef.current.add(msg.targetId);
-        const targetMeta = metaRef.current.get(msg.targetId);
-        if (targetMeta?.userId) removedUsersRef.current.add(targetMeta.userId);
-        dropPeer(msg.targetId);
+        void (async () => {
+          // The server must confirm the sender's signed token before we act on
+          // anything: a "verified" claim in the message itself proves nothing.
+          const allowed = await checkTokenRef.current(msg.from, msg.token);
+          if (!allowed) return;
+          if (msg.targetId === myId) {
+            teardownSelf(msg.reason);
+            return;
+          }
+          removedIdsRef.current.add(msg.targetId);
+          const targetMeta = metaRef.current.get(msg.targetId);
+          if (targetMeta?.userId) removedUsersRef.current.add(targetMeta.userId);
+          dropPeer(msg.targetId);
+        })();
       });
 
       channel.on("broadcast", { event: "signal" }, async ({ payload }) => {
