@@ -51,37 +51,22 @@ function JoinPage() {
         setMessage("This invite link is missing its room code.");
         return;
       }
-      const { data: room } = await supabase
-        .from("rooms")
-        .select("id, name, code")
-        .ilike("code", code)
-        .maybeSingle();
+      const { data: roomId, error: joinError } = await supabase.rpc("join_room_by_code", {
+        _code: code,
+      });
       if (cancelled) return;
-      if (!room) {
-        setStatus("error");
-        setMessage("We couldn't find that room. Ask your friend to resend the invite.");
-        return;
-      }
-      const { error: joinError } = await supabase
-        .from("room_members")
-        .insert({ room_id: room.id, user_id: uid });
-      // A duplicate simply means they were already a member.
-      if (joinError && !joinError.message.toLowerCase().includes("duplicate")) {
+      if (joinError) {
         setStatus("error");
         setMessage("We couldn't add you to that room. Please try again.");
         return;
       }
-      const email = await currentUserEmail();
-      if (email) {
-        await supabase
-          .from("room_invites")
-          .update({ status: "accepted", accepted_at: new Date().toISOString(), accepted_by: uid })
-          .eq("room_id", room.id)
-          .eq("status", "pending")
-          .ilike("email", email);
+      if (!roomId) {
+        setStatus("error");
+        setMessage("We couldn't find that room. Ask your friend to resend the invite.");
+        return;
       }
       sessionStorage.removeItem("onsemble.pendingJoinCode");
-      navigate({ to: "/rooms/$roomId", params: { roomId: room.id } });
+      navigate({ to: "/rooms/$roomId", params: { roomId } });
     };
     void run();
     return () => {
