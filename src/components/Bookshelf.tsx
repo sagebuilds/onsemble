@@ -34,6 +34,7 @@ const KIND_ICON: Record<ShelfKind, typeof BookOpen> = {
 export function Bookshelf({ roomId }: { roomId: string }) {
   const qc = useQueryClient();
   const { data: items } = useShelf(roomId);
+  const notify = useServerFn(notifyShelfItem);
   const [open, setOpen] = useState(false);
   const [kindFilter, setKindFilter] = useState<ShelfKind | "all">("all");
   const [stateFilter, setStateFilter] = useState<ShelfState>("suggestion");
