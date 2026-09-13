@@ -53,7 +53,7 @@ export function useMyRooms() {
       if (ids.length === 0) return [];
       const { data: rooms, error: roomsError } = await supabase
         .from("rooms")
-        .select("id, name, kind, code, services, vibe, created_at")
+        .select("id, name, kind, emoji, code, services, vibe, created_at")
         .in("id", ids)
         .order("created_at", { ascending: false });
       if (roomsError) throw roomsError;
@@ -68,7 +68,7 @@ export function useRoom(roomId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rooms")
-        .select("id, name, kind, code, services, vibe, created_by, created_at")
+        .select("id, name, kind, emoji, code, services, vibe, created_by, created_at")
         .eq("id", roomId)
         .maybeSingle();
       if (error) throw error;
@@ -86,7 +86,7 @@ export function useRoomByCode(code: string | null) {
       if (!code) return null;
       const { data, error } = await supabase
         .from("rooms")
-        .select("id, name, kind, code")
+        .select("id, name, kind, emoji, code")
         .ilike("code", code)
         .maybeSingle();
       if (error) return null;
@@ -278,7 +278,7 @@ export function useMyInvites() {
       if (invites.length === 0) return [];
       const { data: rooms } = await supabase
         .from("rooms")
-        .select("id, name, kind, code")
+        .select("id, name, kind, emoji, code")
         .in(
           "id",
           invites.map((i) => i.room_id),
