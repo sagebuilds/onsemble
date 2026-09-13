@@ -52,16 +52,20 @@ export function Bookshelf({ roomId }: { roomId: string }) {
     }
     const uid = await currentUserId();
     if (!uid) return;
-    const { error } = await supabase.from("shelf_items").insert({
-      room_id: roomId,
-      added_by: uid,
-      title: title.trim(),
-      kind,
-      link: link.trim() || null,
-      note: note.trim() || null,
-      intended_for: intendedFor,
-    });
-    if (error) {
+    const { data: inserted, error } = await supabase
+      .from("shelf_items")
+      .insert({
+        room_id: roomId,
+        added_by: uid,
+        title: title.trim(),
+        kind,
+        link: link.trim() || null,
+        note: note.trim() || null,
+        intended_for: intendedFor,
+      })
+      .select("id")
+      .single();
+    if (error || !inserted) {
       toast.error("Couldn't add that to the shelf.");
       return;
     }
@@ -71,6 +75,12 @@ export function Bookshelf({ roomId }: { roomId: string }) {
     setOpen(false);
     refresh();
     toast.success("Added to the shelf!");
+
+    if (intendedFor !== "me") {
+      notify({ data: { itemId: inserted.id, origin: window.location.origin } }).catch((err) =>
+        console.error("[shelf] notification failed", err),
+      );
+    }
   };
 
   const finish = async (id: string, rating: number) => {

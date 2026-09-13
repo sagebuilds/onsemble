@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import { template as roomInviteMember } from './room-invite-member'
 import { template as roomInviteNewUser } from './room-invite-new-user'
+import { template as shelfItemAdded } from './shelf-item-added'
 
 export interface TemplateEntry {
   component: ComponentType<any>
@@ -18,4 +19,5 @@ export interface TemplateEntry {
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'room-invite-member': roomInviteMember,
   'room-invite-new-user': roomInviteNewUser,
+  'shelf-item-added': shelfItemAdded,
 }
