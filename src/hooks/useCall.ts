@@ -635,7 +635,7 @@ export function useCall(
   /* Signed-in members can lock the room so nobody new can join. */
   const setRoomLocked = useCallback(
     (next: boolean) => {
-      if (!selfMetaRef.current.verified) return;
+      if (!selfMetaRef.current.verified || !modTokenRef.current) return;
       lockedRef.current = next;
       if (next) {
         admittedRef.current = new Set(metaRef.current.keys());
