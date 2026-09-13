@@ -394,9 +394,10 @@ export function useCall(
           // Verified members police the room: kick anyone already removed, and
           // anyone arriving after the room was locked.
           if (id !== myId && selfMetaRef.current.verified) {
+            const trustedUserId = trusted ? (meta.userId ?? null) : null;
             const banned =
               removedIdsRef.current.has(id) ||
-              (meta.userId ? removedUsersRef.current.has(meta.userId) : false);
+              (trustedUserId ? removedUsersRef.current.has(trustedUserId) : false);
             const lateJoiner = lockedRef.current && !admittedRef.current.has(id);
             if (banned || lateJoiner) {
               moderate({
@@ -404,6 +405,7 @@ export function useCall(
                 action: "remove",
                 targetId: id,
                 reason: banned ? "removed" : "locked",
+                token: modTokenRef.current,
               });
               dropPeer(id);
               continue;
