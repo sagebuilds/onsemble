@@ -82,20 +82,12 @@ function Home() {
     try {
       const uid = await currentUserId();
       if (!uid) throw new Error("Please sign in again.");
-      const { data: room, error } = await supabase
-        .from("rooms")
-        .select("id")
-        .eq("code", code)
-        .maybeSingle();
+      const { data: roomId, error } = await supabase.rpc("join_room_by_code", { _code: code });
       if (error) throw error;
-      if (!room) throw new Error("No room with that invite code.");
-      const { error: joinError } = await supabase
-        .from("room_members")
-        .upsert({ room_id: room.id, user_id: uid }, { onConflict: "room_id,user_id" });
-      if (joinError) throw joinError;
+      if (!roomId) throw new Error("No room with that invite code.");
       await qc.invalidateQueries({ queryKey: ["my-rooms"] });
       setJoinCode("");
-      navigate({ to: "/rooms/$roomId", params: { roomId: room.id } });
+      navigate({ to: "/rooms/$roomId", params: { roomId } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't join that room.");
     } finally {
