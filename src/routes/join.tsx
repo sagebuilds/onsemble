@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Popcorn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserEmail, currentUserId } from "@/lib/data";
+import { currentUserId } from "@/lib/data";
 
 export const Route = createFileRoute("/join")({
   staticData: { sitemap: false },
