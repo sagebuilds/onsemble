@@ -285,9 +285,9 @@ export function Bookshelf({ roomId }: { roomId: string }) {
                 </div>
 
                 {item.note && <p className="mt-3 text-sm text-muted-foreground">“{item.note}”</p>}
-                {item.link && (
+                {safeLink(item.link ?? "") && (
                   <a
-                    href={item.link}
+                    href={safeLink(item.link ?? "")!}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-2 inline-block text-xs font-semibold text-primary hover:underline"
