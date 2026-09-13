@@ -34,6 +34,7 @@ export function roomEmoji(room: { kind?: string | null; emoji?: string | null } 
 export const EMOJI_CHOICES = [
   "🍿","💞","🎬","📺","🎧","📚","🌙","☀️","🔥","🌈","✨","🎉","🧸","🍕","☕","🍷",
   "🐱","🐶","🦄","🌸","🌊","🏡","🛋️","🎮","⚽","🎨","🧩","🚀","🗺️","👯","💌","💫",
+  "🦐",
 ] as const;
 
 export const STREAMING_SERVICES = [
