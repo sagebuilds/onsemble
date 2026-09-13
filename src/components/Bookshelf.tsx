@@ -25,6 +25,21 @@ import {
   type ShelfState,
 } from "@/lib/data";
 
+/** Only real web links are allowed — anything else (javascript:, data:, …)
+ *  could run code in another member's browser when they click it. */
+function safeLink(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const candidate = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 const KIND_ICON: Record<ShelfKind, typeof BookOpen> = {
   book: BookOpen,
   movie: Clapperboard,
@@ -53,6 +68,11 @@ export function Bookshelf({ roomId }: { roomId: string }) {
       toast.error("What's it called?");
       return;
     }
+    const cleanLink = safeLink(link);
+    if (link.trim() && !cleanLink) {
+      toast.error("That link doesn't look right — use a web address starting with https://");
+      return;
+    }
     const uid = await currentUserId();
     if (!uid) return;
     const { data: inserted, error } = await supabase
@@ -62,7 +82,7 @@ export function Bookshelf({ roomId }: { roomId: string }) {
         added_by: uid,
         title: title.trim(),
         kind,
-        link: link.trim() || null,
+        link: cleanLink,
         note: note.trim() || null,
         intended_for: intendedFor,
       })
@@ -265,9 +285,9 @@ export function Bookshelf({ roomId }: { roomId: string }) {
                 </div>
 
                 {item.note && <p className="mt-3 text-sm text-muted-foreground">“{item.note}”</p>}
-                {item.link && (
+                {safeLink(item.link ?? "") && (
                   <a
-                    href={item.link}
+                    href={safeLink(item.link ?? "")!}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-2 inline-block text-xs font-semibold text-primary hover:underline"

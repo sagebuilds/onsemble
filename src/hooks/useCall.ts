@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getIceServers } from "@/lib/ice.functions";
+import { issueModerationToken, verifyModerationToken } from "@/lib/moderation.functions";
 
 const DEFAULT_ICE: RTCConfiguration = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
@@ -35,6 +36,8 @@ type Meta = {
   verified: boolean;
   userId: string | null;
   locked: boolean;
+  /* Server-signed proof that this participant is a signed-in member. */
+  modToken: string | null;
 };
 
 type ModerationPayload = {
@@ -42,6 +45,7 @@ type ModerationPayload = {
   action: "remove";
   targetId: string;
   reason: "removed" | "locked";
+  token: string | null;
 };
 
 
@@ -103,6 +107,7 @@ export function useCall(
     verified: identity.verified,
     userId: identity.userId,
     locked: false,
+    modToken: null,
   });
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -127,6 +132,31 @@ export function useCall(
   const removedUsersRef = useRef(new Set<string>());
   const lockedRef = useRef(false);
   const removedSelfRef = useRef(false);
+  /* Our own server-signed moderation token, and cached verdicts for peers. */
+  const modTokenRef = useRef<string | null>(null);
+  const trustedRef = useRef(new Map<string, boolean>());
+
+  /* A peer only counts as a member once the SERVER confirms their token:
+     presence payloads are written by the peer's own browser and can lie. */
+  const checkToken = useCallback(
+    async (peerId: string, token: string | null | undefined): Promise<boolean> => {
+      if (!token) return false;
+      const cacheKey = `${peerId}|${token}`;
+      const cached = trustedRef.current.get(cacheKey);
+      if (cached !== undefined) return cached;
+      try {
+        const result = await verifyModerationToken({ data: { token, roomKey, peerId } });
+        trustedRef.current.set(cacheKey, result.valid);
+        return result.valid;
+      } catch {
+        return false;
+      }
+    },
+    [roomKey],
+  );
+  const checkTokenRef = useRef(checkToken);
+  checkTokenRef.current = checkToken;
+
 
   const syncPeers = useCallback(() => {
     const list: CallPeer[] = [];
@@ -338,23 +368,36 @@ export function useCall(
         for (const [id, entries] of Object.entries(state)) {
           const meta = entries[0];
           if (!meta) continue;
-          if (meta.verified && meta.locked) anyoneLocked = true;
+          // Trust the server's verdict on this peer's token, never their own flag.
+          const token = meta.modToken ?? null;
+          const cached = token ? trustedRef.current.get(`${id}|${token}`) : false;
+          const trusted = id === myId ? selfMetaRef.current.verified : cached === true;
+          if (token && cached === undefined) {
+            void checkTokenRef.current(id, token).then((ok) => {
+              const current = metaRef.current.get(id);
+              if (current) metaRef.current.set(id, { ...current, verified: ok });
+              syncPeers();
+            });
+          }
+          if (trusted && meta.locked) anyoneLocked = true;
           metaRef.current.set(id, {
             name: meta.name,
             muted: meta.muted,
             cameraOff: meta.cameraOff,
             screenId: meta.screenId ?? null,
-            verified: !!meta.verified,
-            userId: meta.userId ?? null,
+            verified: trusted,
+            userId: trusted ? (meta.userId ?? null) : null,
             locked: !!meta.locked,
+            modToken: token,
           });
 
           // Verified members police the room: kick anyone already removed, and
           // anyone arriving after the room was locked.
           if (id !== myId && selfMetaRef.current.verified) {
+            const trustedUserId = trusted ? (meta.userId ?? null) : null;
             const banned =
               removedIdsRef.current.has(id) ||
-              (meta.userId ? removedUsersRef.current.has(meta.userId) : false);
+              (trustedUserId ? removedUsersRef.current.has(trustedUserId) : false);
             const lateJoiner = lockedRef.current && !admittedRef.current.has(id);
             if (banned || lateJoiner) {
               moderate({
@@ -362,6 +405,7 @@ export function useCall(
                 action: "remove",
                 targetId: id,
                 reason: banned ? "removed" : "locked",
+                token: modTokenRef.current,
               });
               dropPeer(id);
               continue;
@@ -382,18 +426,21 @@ export function useCall(
 
       channel.on("broadcast", { event: "moderation" }, ({ payload }) => {
         const msg = payload as ModerationPayload;
-        const fromMeta = metaRef.current.get(msg.from);
-        // Only signed-in members can moderate.
-        if (!fromMeta?.verified) return;
         if (msg.action !== "remove") return;
-        if (msg.targetId === myId) {
-          teardownSelf(msg.reason);
-          return;
-        }
-        removedIdsRef.current.add(msg.targetId);
-        const targetMeta = metaRef.current.get(msg.targetId);
-        if (targetMeta?.userId) removedUsersRef.current.add(targetMeta.userId);
-        dropPeer(msg.targetId);
+        void (async () => {
+          // The server must confirm the sender's signed token before we act on
+          // anything: a "verified" claim in the message itself proves nothing.
+          const allowed = await checkTokenRef.current(msg.from, msg.token);
+          if (!allowed) return;
+          if (msg.targetId === myId) {
+            teardownSelf(msg.reason);
+            return;
+          }
+          removedIdsRef.current.add(msg.targetId);
+          const targetMeta = metaRef.current.get(msg.targetId);
+          if (targetMeta?.userId) removedUsersRef.current.add(targetMeta.userId);
+          dropPeer(msg.targetId);
+        })();
       });
 
       channel.on("broadcast", { event: "signal" }, async ({ payload }) => {
@@ -541,14 +588,45 @@ export function useCall(
     if (joined) pushMeta();
   }, [identity.verified, identity.userId, joined, pushMeta]);
 
+  /* Ask the server for a signed token proving we really are a signed-in
+     member; other participants check it before accepting our moderation. */
+  useEffect(() => {
+    if (!identity.verified) {
+      modTokenRef.current = null;
+      selfMetaRef.current = { ...selfMetaRef.current, modToken: null };
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { token } = await issueModerationToken({ data: { roomKey, peerId: myId } });
+        if (cancelled) return;
+        modTokenRef.current = token;
+        selfMetaRef.current = { ...selfMetaRef.current, modToken: token };
+        if (joined) pushMeta();
+      } catch {
+        /* without a token we simply cannot moderate */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [identity.verified, identity.userId, joined, myId, pushMeta, roomKey]);
+
   /* Signed-in members can throw a guest out of the room. */
   const removeParticipant = useCallback(
     (targetId: string) => {
-      if (!selfMetaRef.current.verified) return;
+      if (!selfMetaRef.current.verified || !modTokenRef.current) return;
       const targetMeta = metaRef.current.get(targetId);
       removedIdsRef.current.add(targetId);
       if (targetMeta?.userId) removedUsersRef.current.add(targetMeta.userId);
-      moderate({ from: myId, action: "remove", targetId, reason: "removed" });
+      moderate({
+        from: myId,
+        action: "remove",
+        targetId,
+        reason: "removed",
+        token: modTokenRef.current,
+      });
       dropPeer(targetId);
     },
     [dropPeer, moderate, myId],
@@ -557,7 +635,7 @@ export function useCall(
   /* Signed-in members can lock the room so nobody new can join. */
   const setRoomLocked = useCallback(
     (next: boolean) => {
-      if (!selfMetaRef.current.verified) return;
+      if (!selfMetaRef.current.verified || !modTokenRef.current) return;
       lockedRef.current = next;
       if (next) {
         admittedRef.current = new Set(metaRef.current.keys());
