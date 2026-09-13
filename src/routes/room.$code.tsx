@@ -180,7 +180,14 @@ function Theater({ entry }: { entry: CallEntry }) {
     () => participants.map((p) => ({ id: p.id, stream: p.stream, muted: p.muted })),
     [participants],
   );
-  const activeSpeakerId = useActiveSpeaker(speakerSources);
+  const detectedSpeakerId = useActiveSpeaker(speakerSources);
+
+  /* You never see yourself highlighted: when you're the one talking,
+     the last person who spoke stays highlighted on your screen. */
+  const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>(null);
+  useEffect(() => {
+    if (detectedSpeakerId && detectedSpeakerId !== "self") setActiveSpeakerId(detectedSpeakerId);
+  }, [detectedSpeakerId]);
 
   /* Drop a pin if that person leaves the room. */
   useEffect(() => {
