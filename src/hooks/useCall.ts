@@ -588,14 +588,45 @@ export function useCall(
     if (joined) pushMeta();
   }, [identity.verified, identity.userId, joined, pushMeta]);
 
+  /* Ask the server for a signed token proving we really are a signed-in
+     member; other participants check it before accepting our moderation. */
+  useEffect(() => {
+    if (!identity.verified) {
+      modTokenRef.current = null;
+      selfMetaRef.current = { ...selfMetaRef.current, modToken: null };
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { token } = await issueModerationToken({ data: { roomKey, peerId: myId } });
+        if (cancelled) return;
+        modTokenRef.current = token;
+        selfMetaRef.current = { ...selfMetaRef.current, modToken: token };
+        if (joined) pushMeta();
+      } catch {
+        /* without a token we simply cannot moderate */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [identity.verified, identity.userId, joined, myId, pushMeta, roomKey]);
+
   /* Signed-in members can throw a guest out of the room. */
   const removeParticipant = useCallback(
     (targetId: string) => {
-      if (!selfMetaRef.current.verified) return;
+      if (!selfMetaRef.current.verified || !modTokenRef.current) return;
       const targetMeta = metaRef.current.get(targetId);
       removedIdsRef.current.add(targetId);
       if (targetMeta?.userId) removedUsersRef.current.add(targetMeta.userId);
-      moderate({ from: myId, action: "remove", targetId, reason: "removed" });
+      moderate({
+        from: myId,
+        action: "remove",
+        targetId,
+        reason: "removed",
+        token: modTokenRef.current,
+      });
       dropPeer(targetId);
     },
     [dropPeer, moderate, myId],
