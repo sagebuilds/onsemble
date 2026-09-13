@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getIceServers } from "@/lib/ice.functions";
+import { issueModerationToken, verifyModerationToken } from "@/lib/moderation.functions";
 
 const DEFAULT_ICE: RTCConfiguration = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
@@ -35,6 +36,8 @@ type Meta = {
   verified: boolean;
   userId: string | null;
   locked: boolean;
+  /* Server-signed proof that this participant is a signed-in member. */
+  modToken: string | null;
 };
 
 type ModerationPayload = {
@@ -42,6 +45,7 @@ type ModerationPayload = {
   action: "remove";
   targetId: string;
   reason: "removed" | "locked";
+  token: string | null;
 };
 
 
