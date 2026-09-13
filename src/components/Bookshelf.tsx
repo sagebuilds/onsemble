@@ -68,6 +68,11 @@ export function Bookshelf({ roomId }: { roomId: string }) {
       toast.error("What's it called?");
       return;
     }
+    const cleanLink = safeLink(link);
+    if (link.trim() && !cleanLink) {
+      toast.error("That link doesn't look right — use a web address starting with https://");
+      return;
+    }
     const uid = await currentUserId();
     if (!uid) return;
     const { data: inserted, error } = await supabase
@@ -77,7 +82,7 @@ export function Bookshelf({ roomId }: { roomId: string }) {
         added_by: uid,
         title: title.trim(),
         kind,
-        link: link.trim() || null,
+        link: cleanLink,
         note: note.trim() || null,
         intended_for: intendedFor,
       })
