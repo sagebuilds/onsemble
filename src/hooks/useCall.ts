@@ -368,15 +368,27 @@ export function useCall(
         for (const [id, entries] of Object.entries(state)) {
           const meta = entries[0];
           if (!meta) continue;
-          if (meta.verified && meta.locked) anyoneLocked = true;
+          // Trust the server's verdict on this peer's token, never their own flag.
+          const token = meta.modToken ?? null;
+          const cached = token ? trustedRef.current.get(`${id}|${token}`) : false;
+          const trusted = id === myId ? selfMetaRef.current.verified : cached === true;
+          if (token && cached === undefined) {
+            void checkTokenRef.current(id, token).then((ok) => {
+              const current = metaRef.current.get(id);
+              if (current) metaRef.current.set(id, { ...current, verified: ok });
+              syncPeers();
+            });
+          }
+          if (trusted && meta.locked) anyoneLocked = true;
           metaRef.current.set(id, {
             name: meta.name,
             muted: meta.muted,
             cameraOff: meta.cameraOff,
             screenId: meta.screenId ?? null,
-            verified: !!meta.verified,
-            userId: meta.userId ?? null,
+            verified: trusted,
+            userId: trusted ? (meta.userId ?? null) : null,
             locked: !!meta.locked,
+            modToken: token,
           });
 
           // Verified members police the room: kick anyone already removed, and
