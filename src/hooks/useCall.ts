@@ -107,6 +107,7 @@ export function useCall(
     verified: identity.verified,
     userId: identity.userId,
     locked: false,
+    modToken: null,
   });
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
