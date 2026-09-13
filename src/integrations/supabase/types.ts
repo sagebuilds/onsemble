@@ -334,6 +334,7 @@ export type Database = {
         Args: { _room_id: string; _user_id: string }
         Returns: boolean
       }
+      join_room_by_code: { Args: { _code: string }; Returns: string }
       shares_room_with: {
         Args: { _other: string; _user_id: string }
         Returns: boolean
