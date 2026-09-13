@@ -25,6 +25,17 @@ export const ROOM_KINDS: { id: RoomKind; label: string; blurb: string; emoji: st
   },
 ];
 
+/** Emoji shown for a room: the custom one if set, otherwise the kind default. */
+export function roomEmoji(room: { kind?: string | null; emoji?: string | null } | null | undefined) {
+  if (room?.emoji) return room.emoji;
+  return room?.kind === "date" ? "💞" : "🍿";
+}
+
+export const EMOJI_CHOICES = [
+  "🍿","💞","🎬","📺","🎧","📚","🌙","☀️","🔥","🌈","✨","🎉","🧸","🍕","☕","🍷",
+  "🐱","🐶","🦄","🌸","🌊","🏡","🛋️","🎮","⚽","🎨","🧩","🚀","🗺️","👯","💌","💫",
+] as const;
+
 export const STREAMING_SERVICES = [
   "YouTube",
   "Netflix",
