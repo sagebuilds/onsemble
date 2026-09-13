@@ -132,6 +132,31 @@ export function useCall(
   const removedUsersRef = useRef(new Set<string>());
   const lockedRef = useRef(false);
   const removedSelfRef = useRef(false);
+  /* Our own server-signed moderation token, and cached verdicts for peers. */
+  const modTokenRef = useRef<string | null>(null);
+  const trustedRef = useRef(new Map<string, boolean>());
+
+  /* A peer only counts as a member once the SERVER confirms their token:
+     presence payloads are written by the peer's own browser and can lie. */
+  const checkToken = useCallback(
+    async (peerId: string, token: string | null | undefined): Promise<boolean> => {
+      if (!token) return false;
+      const cacheKey = `${peerId}|${token}`;
+      const cached = trustedRef.current.get(cacheKey);
+      if (cached !== undefined) return cached;
+      try {
+        const result = await verifyModerationToken({ data: { token, roomKey, peerId } });
+        trustedRef.current.set(cacheKey, result.valid);
+        return result.valid;
+      } catch {
+        return false;
+      }
+    },
+    [roomKey],
+  );
+  const checkTokenRef = useRef(checkToken);
+  checkTokenRef.current = checkToken;
+
 
   const syncPeers = useCallback(() => {
     const list: CallPeer[] = [];
