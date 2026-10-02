@@ -118,7 +118,7 @@ function buildChecks({
           : "Direct connection failed and no relay server is configured.",
         fix: relayAvailable
           ? "Both of you should try a different network (a phone hotspot is a good test). If it keeps failing, a firewall is blocking media traffic on both ends."
-          : "This network blocks direct connections between browsers. A relay (TURN) server needs to be added to Onsemble — until then, try a home network or a phone hotspot.",
+          : "This network blocks direct connections between browsers. Try a home network or a phone hotspot.",
       });
     } else if (peer.connectionState === "disconnected") {
       checks.push({
@@ -148,10 +148,9 @@ function buildChecks({
             : "Available if a direct connection fails.",
         }
       : {
-          label: "Relay fallback",
-          tone: "warn",
-          detail: "No relay server is configured.",
-          fix: "Calls will fail on strict corporate, hotel and some mobile networks. Adding a relay (TURN) service fixes that for everyone.",
+          label: "Direct connection",
+          tone: "idle",
+          detail: "Onsemble connects you directly to each friend, with no relay server.",
         },
   );
 

@@ -1,3 +1,4 @@
+import { MAX_CALL_SIZE } from "@/lib/room";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,7 +121,8 @@ export function useCall(
   const [relayAvailable, setRelayAvailable] = useState(false);
   const [usingRelay, setUsingRelay] = useState(false);
   const [locked, setLockedState] = useState(false);
-  const [removedNotice, setRemovedNotice] = useState<"removed" | "locked" | null>(null);
+  const [removedNotice, setRemovedNotice] = useState<"removed" | "locked" | "full" | null>(null);
+  const joinedAtRef = useRef(Date.now());
 
   const iceRef = useRef<RTCConfiguration>(DEFAULT_ICE);
   const relayOnlyRef = useRef(new Set<string>());
@@ -197,7 +199,7 @@ export function useCall(
   }, []);
 
   const pushMeta = useCallback(() => {
-    channelRef.current?.track({ id: myId, ...selfMetaRef.current });
+    channelRef.current?.track({ id: myId, joinedAt: joinedAtRef.current, ...selfMetaRef.current });
   }, [myId]);
 
 
@@ -344,7 +346,7 @@ export function useCall(
       });
       channelRef.current = channel;
 
-      const teardownSelf = (reason: "removed" | "locked") => {
+      const teardownSelf = (reason: "removed" | "locked" | "full") => {
         if (removedSelfRef.current) return;
         removedSelfRef.current = true;
         for (const id of [...peersRef.current.keys()]) dropPeer(id);
@@ -363,8 +365,22 @@ export function useCall(
       };
 
       channel.on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState<Meta & { id: string }>();
+        const state = channel.presenceState<Meta & { id: string; joinedAt?: number }>();
         const present = new Set(Object.keys(state));
+        // Rooms hold at most MAX_CALL_SIZE people; the latest arrivals step out.
+        if (present.size > MAX_CALL_SIZE) {
+          const order = Object.entries(state)
+            .map(([id, e]) => ({ id, at: e[0]?.joinedAt ?? Number.MAX_SAFE_INTEGER }))
+            .sort((a, b) => a.at - b.at || a.id.localeCompare(b.id))
+            .slice(0, MAX_CALL_SIZE)
+            .map((x) => x.id);
+          if (!order.includes(myId)) {
+            teardownSelf("full");
+            return;
+          }
+          for (const id of present) if (!order.includes(id)) delete state[id];
+          for (const id of [...present]) if (!order.includes(id)) present.delete(id);
+        }
         let anyoneLocked = false;
         for (const [id, entries] of Object.entries(state)) {
           const meta = entries[0];
@@ -487,7 +503,7 @@ export function useCall(
       channel.subscribe(async (status) => {
         if (status !== "SUBSCRIBED") return;
         setJoined(true);
-        await channel.track({ id: myId, ...selfMetaRef.current });
+        await channel.track({ id: myId, joinedAt: joinedAtRef.current, ...selfMetaRef.current });
       });
     };
 

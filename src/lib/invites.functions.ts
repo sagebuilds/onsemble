@@ -48,7 +48,12 @@ export const sendRoomInvite = createServerFn({ method: "POST" })
         .insert({ room_id: data.roomId, email, invited_by: context.userId })
         .select("id")
         .single();
-      if (insertError) throw new Error("Could not create the invite");
+      if (insertError)
+        throw new Error(
+          insertError.message.includes("room_full")
+            ? "This room is full — rooms hold up to 4 people, including pending invites."
+            : "Could not create the invite",
+        );
       inviteId = inserted.id;
     }
 

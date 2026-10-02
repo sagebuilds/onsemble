@@ -220,7 +220,9 @@ function Theater({ entry }: { entry: CallEntry }) {
   useEffect(() => {
     if (!removedNotice) return;
     toast.error(
-      removedNotice === "locked"
+      removedNotice === "full"
+        ? "This room is full — calls are limited to 4 people for now."
+        : removedNotice === "locked"
         ? "This room is locked — no new people can join right now."
         : "A member of this room removed you from the call.",
     );
