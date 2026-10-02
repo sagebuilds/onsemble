@@ -41,7 +41,7 @@ Live: https://onsemble.sagebuilds.com
 
 ### Bookshelf
 - Shelve books, movies and shows with a link, cover and note, and mark who each one is for ("for you", "for us" or "for me").
-- Items are either Suggestion or Finished. Finished items can have a rating and a short reaction.
+- Items are Suggestion, In progress or Finished. Finished items can have a rating and a short reaction.
 - Filter by type, state and who it's for.
 - Other members get an email when something is shelved "for you" or "for us".
 
