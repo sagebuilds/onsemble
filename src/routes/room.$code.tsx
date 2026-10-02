@@ -103,7 +103,6 @@ function Theater({ entry }: { entry: CallEntry }) {
 
   const selfVideoRef = useRef<HTMLVideoElement>(null);
   const stageScreenRef = useRef<HTMLVideoElement>(null);
-  const screenVideoRef = useRef<HTMLVideoElement>(null);
   const [dimming, setDimming] = useState(true);
   const [manualService, setManualService] = useState<string | null>(null);
   const [layout, setLayout] = useState<"speaker" | "grid">("speaker");
@@ -234,9 +233,6 @@ function Theater({ entry }: { entry: CallEntry }) {
     if (stageScreenRef.current) stageScreenRef.current.srcObject = stageStream;
   }, [stageStream]);
 
-  useEffect(() => {
-    if (screenVideoRef.current) screenVideoRef.current.srcObject = screenStream;
-  }, [screenStream]);
 
   const [shareAudio, setShareAudio] = useState(true);
 
@@ -598,15 +594,6 @@ function Theater({ entry }: { entry: CallEntry }) {
             onTogglePin={() => togglePin("self")}
           />
 
-          {screenStream && (
-            <div className="overflow-hidden rounded-2xl border border-primary/40 bg-black">
-              <video ref={screenVideoRef} autoPlay playsInline muted className="w-full" />
-              <p className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-primary">
-                <ScreenShare className="h-3.5 w-3.5" /> Your screen
-              </p>
-            </div>
-          )}
-
           {peers.map((peer, i) => (
             <div key={peer.id} className="space-y-3">
               <VideoTile
@@ -638,12 +625,9 @@ function Theater({ entry }: { entry: CallEntry }) {
                   </Button>
                 </div>
               )}
-              {peer.screen && (
-                <PeerScreen
-                  stream={peer.screen}
-                  name={peer.name}
-                  muted={peer.screen === stageStream && !showPeopleOnStage}
-                />
+              {/* No mini tile — just keep the screen's sound playing when it isn't on the stage. */}
+              {peer.screen && !(peer.screen === stageStream && !showPeopleOnStage) && (
+                <ScreenAudio stream={peer.screen} />
               )}
             </div>
 
@@ -710,28 +694,12 @@ function Theater({ entry }: { entry: CallEntry }) {
   );
 }
 
-function PeerScreen({
-  stream,
-  name,
-  muted,
-}: {
-  stream: MediaStream;
-  name: string;
-  muted: boolean;
-}) {
-  const ref = useRef<HTMLVideoElement>(null);
+function ScreenAudio({ stream }: { stream: MediaStream }) {
+  const ref = useRef<HTMLAudioElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.srcObject = stream;
   }, [stream]);
-  return (
-    <div className="overflow-hidden rounded-2xl border border-primary/40 bg-black">
-      {/* Muted when the stage already plays this screen, so its sound isn't doubled. */}
-      <video ref={ref} autoPlay playsInline muted={muted} className="w-full" />
-      <p className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-primary">
-        <ScreenShare className="h-3.5 w-3.5" /> {name}'s screen
-      </p>
-    </div>
-  );
+  return <audio ref={ref} autoPlay className="hidden" />;
 }
 
 function StatusPill({
