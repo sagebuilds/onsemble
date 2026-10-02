@@ -228,7 +228,7 @@ export function useCall(
       for (const track of localRef.current?.getTracks() ?? [])
         pc.addTrack(track, localRef.current!);
       for (const track of screenRef.current?.getTracks() ?? [])
-        pc.addTrack(track, screenRef.current!);
+        tuneScreenSender(pc.addTrack(track, screenRef.current!));
 
       pc.onicecandidate = (e) => {
         if (e.candidate) signal({ from: myId, to: remoteId, candidate: e.candidate.toJSON() });
@@ -736,10 +736,12 @@ export function useCall(
       }
     }
     for (const t of stream.getAudioTracks()) t.contentHint = "music";
+    // Treat the share as moving video so the encoder keeps frames flowing.
+    for (const t of stream.getVideoTracks()) t.contentHint = "motion";
     screenRef.current = stream;
     setScreenStream(stream);
     for (const track of stream.getTracks())
-      for (const { pc } of peersRef.current.values()) pc.addTrack(track, stream);
+      for (const { pc } of peersRef.current.values()) tuneScreenSender(pc.addTrack(track, stream));
     stream.getVideoTracks()[0]?.addEventListener("ended", () => stopShare());
     selfMetaRef.current = { ...selfMetaRef.current, screenId: stream.id };
     pushMeta();
@@ -769,4 +771,27 @@ export function useCall(
     iceServerCount: iceRef.current.iceServers?.length ?? 0,
 
   };
+}
+
+/** When bandwidth or CPU runs short, drop resolution rather than frame rate. */
+function tuneScreenSender(sender: RTCRtpSender) {
+  if (sender.track?.kind !== "video") return;
+  const apply = () => {
+    try {
+      const params = sender.getParameters();
+      if (!params.encodings?.length) return false;
+      (params as RTCRtpSendParameters & { degradationPreference?: string }).degradationPreference =
+        "maintain-framerate";
+      void sender.setParameters(params).catch(() => undefined);
+      return true;
+    } catch {
+      return true;
+    }
+  };
+  // Encodings only exist once negotiation has started; retry briefly until then.
+  if (apply()) return;
+  let tries = 0;
+  const timer = setInterval(() => {
+    if (apply() || ++tries > 20) clearInterval(timer);
+  }, 500);
 }
