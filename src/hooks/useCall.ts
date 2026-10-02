@@ -713,6 +713,7 @@ export function useCall(
     stream.getVideoTracks()[0]?.addEventListener("ended", () => stopShare());
     selfMetaRef.current = { ...selfMetaRef.current, screenId: stream.id };
     pushMeta();
+    return stream;
   }, [pushMeta, stopShare]);
 
   return {

@@ -238,6 +238,8 @@ function Theater({ entry }: { entry: CallEntry }) {
     if (screenVideoRef.current) screenVideoRef.current.srcObject = screenStream;
   }, [screenStream]);
 
+  const [shareAudio, setShareAudio] = useState(true);
+
   const toggleShare = async () => {
     if (screenStream) {
       stopShare();
