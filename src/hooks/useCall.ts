@@ -704,7 +704,12 @@ export function useCall(
       selfBrowserSurface: "exclude",
       preferCurrentTab: false,
     } as DisplayMediaStreamOptions;
-    const stream = await navigator.mediaDevices.getDisplayMedia(options);
+    // Firefox never returns audio from the screen picker and can reject audio
+    // constraints, so ask it for video only and rely on the monitor fallback.
+    const isFirefox = /firefox/i.test(navigator.userAgent);
+    const stream = await navigator.mediaDevices.getDisplayMedia(
+      isFirefox ? { video: true, audio: false } : options,
+    );
     // Linux browsers can't capture window/screen audio through the picker.
     // PulseAudio/PipeWire expose the speakers' "Monitor" as a recording device,
     // so pick that up and attach it to the screen stream instead.

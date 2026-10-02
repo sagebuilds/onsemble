@@ -250,7 +250,9 @@ function Theater({ entry }: { entry: CallEntry }) {
       const stream = await startShare(shareAudio);
       if (shareAudio && stream.getAudioTracks().length === 0) {
         toast.warning(
-          /linux/i.test(navigator.userAgent)
+          /firefox/i.test(navigator.userAgent)
+            ? "Sharing without sound — Firefox can only send screen sound through your speakers' \"Monitor\" source. On Linux, install PulseAudio Volume Control (pavucontrol), allow microphone access, and pick the Monitor device if asked, then share again."
+            : /linux/i.test(navigator.userAgent)
             ? "Sharing without sound — share a browser tab with \"Share tab audio\" on, or install PulseAudio Volume Control (pavucontrol) so your speakers' \"Monitor\" source is available, then share again."
             : "Sharing without sound — tick \"Share audio\" in the picker, or share a browser tab or your entire screen to include sound.",
         );
