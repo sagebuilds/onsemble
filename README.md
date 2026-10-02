@@ -25,7 +25,7 @@ Live: https://onsemble.sagebuilds.com
 - Mute, camera on/off, pinning, and a switch between grid and speaker layouts.
 - Active-speaker highlighting. Your own voice doesn't highlight your tile on your screen.
 - A Connection health panel that explains failures and suggests fixes.
-- A relay server is used when the network blocks direct connections, if one is configured.
+- Rooms and calls hold up to 4 people.
 - Pop-out video (picture-in-picture).
 
 ### Screen sharing
@@ -87,7 +87,6 @@ graph TD
         RT[Realtime channels]
         Mail[Email - notify.onsemble.sagebuilds.com]
     end
-    TURN[TURN relay - optional]
     Sites[Streaming sites]
 
     UI --> SSR
@@ -96,7 +95,6 @@ graph TD
     UI --> DB
     UI --> Store
     Call <--> RT
-    Call <-. media .-> TURN
     SF --> DB
     SF --> Mail
     Ext <--> Sites
@@ -119,7 +117,7 @@ sequenceDiagram
     RT-->>B: offer
     B->>RT: answer + ICE candidates
     RT-->>A: answer + ICE candidates
-    A<<->>B: camera, mic and screen media (direct or via TURN)
+    A<<->>B: camera, mic and screen media
 ```
 
 ### Synced playback
@@ -167,11 +165,11 @@ sequenceDiagram
 
 ## Configuration
 
-- `TURN_URLS`, `TURN_USERNAME` and `TURN_CREDENTIAL` are optional secrets for a relay server. Without them, calls may fail on strict networks.
+- No relay server is used. Calls connect directly, so a few very strict networks (some workplaces and hotels) may block them.
 
 ## Known limitations
 
-- Calls use direct connections between every pair of people, so quality drops in groups larger than about 4.
+- Rooms are capped at 4 people, because calls connect every pair of people directly.
 - The extension is installed manually ("Load unpacked") and isn't on the Chrome Web Store yet.
 
 ## Development
