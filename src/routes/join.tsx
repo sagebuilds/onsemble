@@ -57,7 +57,11 @@ function JoinPage() {
       if (cancelled) return;
       if (joinError) {
         setStatus("error");
-        setMessage("We couldn't add you to that room. Please try again.");
+        setMessage(
+          joinError.message.includes("room_full")
+            ? "That room is full — rooms hold up to 4 people for now."
+            : "We couldn't add you to that room. Please try again.",
+        );
         return;
       }
       if (!roomId) {

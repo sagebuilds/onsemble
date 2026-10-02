@@ -83,7 +83,7 @@ function Home() {
       const uid = await currentUserId();
       if (!uid) throw new Error("Please sign in again.");
       const { data: roomId, error } = await supabase.rpc("join_room_by_code", { _code: code });
-      if (error) throw error;
+      if (error) throw new Error(error.message.includes("room_full") ? "That room is full — rooms hold up to 4 people." : "Couldn't join that room.");
       if (!roomId) throw new Error("No room with that invite code.");
       await qc.invalidateQueries({ queryKey: ["my-rooms"] });
       setJoinCode("");
@@ -104,7 +104,7 @@ function Home() {
       const { error: joinError } = await supabase
         .from("room_members")
         .upsert({ room_id: roomId, user_id: uid }, { onConflict: "room_id,user_id" });
-      if (joinError) throw joinError;
+      if (joinError) throw new Error(joinError.message.includes("room_full") ? "That room is full — rooms hold up to 4 people." : "Couldn't join that room.");
       await supabase
         .from("room_invites")
         .update({ status: "accepted", accepted_at: new Date().toISOString(), accepted_by: uid })
