@@ -15,7 +15,6 @@ import {
   PictureInPicture2,
   Popcorn,
   Radio,
-  ScreenShare,
   UserX,
   Video as VideoIcon,
   VideoOff,
