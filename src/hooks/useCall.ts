@@ -684,8 +684,28 @@ export function useCall(
     pushMeta();
   }, [pushMeta]);
 
-  const startShare = useCallback(async () => {
-    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+  const startShare = useCallback(async (withAudio = true) => {
+    // Capture the shared tab/window/screen's own audio output, unprocessed so
+    // music and film soundtracks aren't treated as speech. The extra hints are
+    // Chromium-specific; other browsers ignore what they don't understand.
+    const options = {
+      video: { frameRate: { ideal: 30 } },
+      audio: withAudio
+        ? {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            suppressLocalAudioPlayback: false,
+          }
+        : false,
+      systemAudio: withAudio ? "include" : "exclude",
+      windowAudio: withAudio ? "window" : "exclude",
+      surfaceSwitching: "include",
+      selfBrowserSurface: "exclude",
+      preferCurrentTab: false,
+    } as DisplayMediaStreamOptions;
+    const stream = await navigator.mediaDevices.getDisplayMedia(options);
+    for (const t of stream.getAudioTracks()) t.contentHint = "music";
     screenRef.current = stream;
     setScreenStream(stream);
     for (const track of stream.getTracks())
@@ -693,6 +713,7 @@ export function useCall(
     stream.getVideoTracks()[0]?.addEventListener("ended", () => stopShare());
     selfMetaRef.current = { ...selfMetaRef.current, screenId: stream.id };
     pushMeta();
+    return stream;
   }, [pushMeta, stopShare]);
 
   return {
