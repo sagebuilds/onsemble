@@ -250,7 +250,9 @@ function Theater({ entry }: { entry: CallEntry }) {
       const stream = await startShare(shareAudio);
       if (shareAudio && stream.getAudioTracks().length === 0) {
         toast.warning(
-          "Sharing without sound — tick \"Share audio\" in the picker, or share a browser tab or your entire screen to include sound.",
+          /linux/i.test(navigator.userAgent)
+            ? "Sharing without sound — share a browser tab with \"Share tab audio\" on, or install PulseAudio Volume Control (pavucontrol) so your speakers' \"Monitor\" source is available, then share again."
+            : "Sharing without sound — tick \"Share audio\" in the picker, or share a browser tab or your entire screen to include sound.",
         );
       } else {
         toast.success(
