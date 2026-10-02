@@ -67,6 +67,104 @@ Live: https://onsemble.sagebuilds.com
 - WebRTC for direct browser-to-browser calls.
 - A Chrome extension (Manifest V3) in `chrome-extension/`.
 
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Browser
+        UI[React app - TanStack Start]
+        Call[useCall - WebRTC mesh]
+        Ext[Chrome extension]
+    end
+    subgraph Server[App server - Worker]
+        SSR[SSR and routes]
+        SF[Server functions - invites, moderation, shelf emails]
+    end
+    subgraph Cloud[Lovable Cloud]
+        Auth[Auth - email and Google]
+        DB[(Database with RLS)]
+        Store[(Private photo storage)]
+        RT[Realtime channels]
+        Mail[Email - notify.onsemble.sagebuilds.com]
+    end
+    TURN[TURN relay - optional]
+    Sites[Streaming sites]
+
+    UI --> SSR
+    UI --> SF
+    UI --> Auth
+    UI --> DB
+    UI --> Store
+    Call <--> RT
+    Call <-. media .-> TURN
+    SF --> DB
+    SF --> Mail
+    Ext <--> Sites
+    Ext <--> UI
+```
+
+## Data flows
+
+### Joining a call
+
+```mermaid
+sequenceDiagram
+    participant A as Friend A
+    participant RT as Realtime channel
+    participant B as Friend B
+    A->>RT: join room presence
+    B->>RT: join room presence
+    RT-->>A: B joined
+    A->>RT: offer (SDP)
+    RT-->>B: offer
+    B->>RT: answer + ICE candidates
+    RT-->>A: answer + ICE candidates
+    A<<->>B: camera, mic and screen media (direct or via TURN)
+```
+
+### Synced playback
+
+```mermaid
+sequenceDiagram
+    participant V1 as Video tag (Friend A)
+    participant C1 as Content script A
+    participant BG as Extension background
+    participant C2 as Content script B
+    participant V2 as Video tag (Friend B)
+    V1->>C1: play / pause / seek
+    C1->>BG: playback event + room code
+    BG->>C2: relay event
+    C2->>V2: apply play / pause / seek
+```
+
+### Email invite
+
+```mermaid
+sequenceDiagram
+    participant U as Member
+    participant SF as Server function
+    participant DB as Database
+    participant M as Email
+    U->>SF: invite email address
+    SF->>SF: verify caller is a room member
+    SF->>DB: email_has_account?
+    SF->>DB: add pending member
+    SF->>M: send member or new-user template
+```
+
+### Photo upload
+
+```mermaid
+sequenceDiagram
+    participant U as Member
+    participant S as Private storage
+    participant DB as Database
+    U->>U: validate type and size
+    U->>S: upload file (progress shown)
+    U->>DB: save photo row (caption, album, order)
+    DB-->>U: visible only to room members (RLS)
+```
+
 ## Configuration
 
 - `TURN_URLS`, `TURN_USERNAME` and `TURN_CREDENTIAL` are optional secrets for a relay server. Without them, calls may fail on strict networks.
