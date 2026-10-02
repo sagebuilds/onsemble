@@ -229,6 +229,7 @@ export function useCall(
         pc.addTrack(track, localRef.current!);
       for (const track of screenRef.current?.getTracks() ?? [])
         tuneScreenSender(pc.addTrack(track, screenRef.current!));
+      if (screenRef.current) setCameraBudget(pc, true);
 
       pc.onicecandidate = (e) => {
         if (e.candidate) signal({ from: myId, to: remoteId, candidate: e.candidate.toJSON() });
@@ -679,6 +680,7 @@ export function useCall(
       }
     }
     screenRef.current = null;
+    for (const { pc } of peersRef.current.values()) setCameraBudget(pc, false);
     setScreenStream(null);
     selfMetaRef.current = { ...selfMetaRef.current, screenId: null };
     pushMeta();
@@ -742,6 +744,7 @@ export function useCall(
     setScreenStream(stream);
     for (const track of stream.getTracks())
       for (const { pc } of peersRef.current.values()) tuneScreenSender(pc.addTrack(track, stream));
+    for (const { pc } of peersRef.current.values()) setCameraBudget(pc, true);
     stream.getVideoTracks()[0]?.addEventListener("ended", () => stopShare());
     selfMetaRef.current = { ...selfMetaRef.current, screenId: stream.id };
     pushMeta();
@@ -782,6 +785,10 @@ function tuneScreenSender(sender: RTCRtpSender) {
       if (!params.encodings?.length) return false;
       (params as RTCRtpSendParameters & { degradationPreference?: string }).degradationPreference =
         "maintain-framerate";
+      for (const enc of params.encodings) {
+        enc.priority = "high";
+        enc.networkPriority = "high";
+      }
       void sender.setParameters(params).catch(() => undefined);
       return true;
     } catch {
@@ -789,6 +796,47 @@ function tuneScreenSender(sender: RTCRtpSender) {
     }
   };
   // Encodings only exist once negotiation has started; retry briefly until then.
+  if (apply()) return;
+  let tries = 0;
+  const timer = setInterval(() => {
+    if (apply() || ++tries > 20) clearInterval(timer);
+  }, 500);
+}
+
+/**
+ * While a screen is shared, shrink the camera feed so the shared video gets
+ * most of the upload bandwidth; restore full camera quality afterwards.
+ */
+function setCameraBudget(pc: RTCPeerConnection, sharing: boolean) {
+  const apply = () => {
+    const sender = pc
+      .getSenders()
+      .find((s) => s.track?.kind === "video" && s.track.contentHint !== "motion");
+    if (!sender) return true;
+    try {
+      const params = sender.getParameters();
+      if (!params.encodings?.length) return false;
+      for (const enc of params.encodings) {
+        if (sharing) {
+          enc.maxBitrate = 250_000;
+          enc.scaleResolutionDownBy = 2;
+          enc.maxFramerate = 15;
+          enc.priority = "very-low";
+          enc.networkPriority = "very-low";
+        } else {
+          delete enc.maxBitrate;
+          enc.scaleResolutionDownBy = 1;
+          delete enc.maxFramerate;
+          enc.priority = "low";
+          enc.networkPriority = "low";
+        }
+      }
+      void sender.setParameters(params).catch(() => undefined);
+      return true;
+    } catch {
+      return true;
+    }
+  };
   if (apply()) return;
   let tries = 0;
   const timer = setInterval(() => {
