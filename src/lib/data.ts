@@ -2,11 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export type ShelfKind = "book" | "movie" | "show";
-export type ShelfState = "suggestion" | "finished";
+export type ShelfState = "suggestion" | "in_progress" | "finished";
 export type ShelfFor = "you" | "us" | "me";
 
 export const SHELF_STATE_LABEL: Record<ShelfState, string> = {
   suggestion: "Suggestion",
+  in_progress: "In progress",
   finished: "Finished",
 };
 
