@@ -14,7 +14,7 @@ export const ROOM_KINDS: { id: RoomKind; label: string; blurb: string; emoji: st
   {
     id: "friendship",
     label: "Friendship Room",
-    blurb: "Up to 6 friends, chaotic group commentary encouraged.",
+    blurb: "Up to 4 friends, chaotic group commentary encouraged.",
     emoji: "🍿",
   },
   {
@@ -44,3 +44,6 @@ export const STREAMING_SERVICES = [
   "Apple TV+",
   "Prime Video",
 ] as const;
+
+/** Most people allowed in a room (members) and in a live call at once. */
+export const MAX_CALL_SIZE = 4;
