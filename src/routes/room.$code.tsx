@@ -245,8 +245,18 @@ function Theater({ entry }: { entry: CallEntry }) {
       return;
     }
     try {
-      await startShare();
-      toast.success("You're sharing your screen — your camera stays on too.");
+      const stream = await startShare(shareAudio);
+      if (shareAudio && stream.getAudioTracks().length === 0) {
+        toast.warning(
+          "Sharing without sound — tick \"Share audio\" in the picker, or share a browser tab or your entire screen to include sound.",
+        );
+      } else {
+        toast.success(
+          shareAudio
+            ? "You're sharing your screen with sound — your camera stays on too."
+            : "You're sharing your screen — your camera stays on too.",
+        );
+      }
     } catch {
       toast.error("Screen sharing was cancelled.");
     }
@@ -622,7 +632,13 @@ function Theater({ entry }: { entry: CallEntry }) {
                   </Button>
                 </div>
               )}
-              {peer.screen && <PeerScreen stream={peer.screen} name={peer.name} />}
+              {peer.screen && (
+                <PeerScreen
+                  stream={peer.screen}
+                  name={peer.name}
+                  muted={peer.screen === stageStream && !showPeopleOnStage}
+                />
+              )}
             </div>
 
           ))}
@@ -664,6 +680,20 @@ function Theater({ entry }: { entry: CallEntry }) {
             )}
             {screenStream ? "Stop sharing" : "Share screen"}
           </Button>
+          {!screenStream && (
+            <label className="flex cursor-pointer items-center justify-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={shareAudio}
+                onChange={(e) => setShareAudio(e.target.checked)}
+                className="h-3.5 w-3.5 accent-[hsl(var(--primary))]"
+              />
+              Include screen audio
+            </label>
+          )}
+          {screenStream && screenStream.getAudioTracks().length > 0 && (
+            <p className="text-center text-xs text-primary">Sharing with sound</p>
+          )}
 
           <Button className="rounded-full shadow-neon" onClick={popOut}>
             <PictureInPicture2 className="mr-1 h-4 w-4" /> Pop-Out Video
@@ -674,14 +704,23 @@ function Theater({ entry }: { entry: CallEntry }) {
   );
 }
 
-function PeerScreen({ stream, name }: { stream: MediaStream; name: string }) {
+function PeerScreen({
+  stream,
+  name,
+  muted,
+}: {
+  stream: MediaStream;
+  name: string;
+  muted: boolean;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.srcObject = stream;
   }, [stream]);
   return (
     <div className="overflow-hidden rounded-2xl border border-primary/40 bg-black">
-      <video ref={ref} autoPlay playsInline className="w-full" />
+      {/* Muted when the stage already plays this screen, so its sound isn't doubled. */}
+      <video ref={ref} autoPlay playsInline muted={muted} className="w-full" />
       <p className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-primary">
         <ScreenShare className="h-3.5 w-3.5" /> {name}'s screen
       </p>
