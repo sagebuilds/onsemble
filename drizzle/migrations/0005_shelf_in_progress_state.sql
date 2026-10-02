@@ -1,0 +1,2 @@
+ALTER TABLE public.shelf_items DROP CONSTRAINT shelf_items_state_check;
+ALTER TABLE public.shelf_items ADD CONSTRAINT shelf_items_state_check CHECK (state = ANY (ARRAY['suggestion'::text, 'in_progress'::text, 'finished'::text]));

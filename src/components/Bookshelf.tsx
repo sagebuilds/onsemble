@@ -118,6 +118,15 @@ export function Bookshelf({ roomId }: { roomId: string }) {
     refresh();
   };
 
+  const setState = async (id: string, state: ShelfState) => {
+    const { error } = await supabase.from("shelf_items").update({ state }).eq("id", id);
+    if (error) {
+      toast.error("Couldn't move that one.");
+      return;
+    }
+    refresh();
+  };
+
   const reopen = async (id: string) => {
     await supabase
       .from("shelf_items")
@@ -234,6 +243,9 @@ export function Bookshelf({ roomId }: { roomId: string }) {
         <Chip active={stateFilter === "suggestion"} onClick={() => setStateFilter("suggestion")}>
           Suggestions
         </Chip>
+        <Chip active={stateFilter === "in_progress"} onClick={() => setStateFilter("in_progress")}>
+          In progress
+        </Chip>
         <Chip active={stateFilter === "finished"} onClick={() => setStateFilter("finished")}>
           Finished
         </Chip>
@@ -296,21 +308,38 @@ export function Bookshelf({ roomId }: { roomId: string }) {
                   </a>
                 )}
 
-                {item.state === "suggestion" ? (
-                  <div className="mt-4 flex items-center gap-1">
-                    <span className="mr-2 text-xs font-semibold text-muted-foreground">
-                      Finished it? Rate:
-                    </span>
-                    {[1, 2, 3, 4, 5].map((n) => (
+                {item.state !== "finished" ? (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center gap-1">
+                      <span className="mr-2 text-xs font-semibold text-muted-foreground">
+                        Finished it? Rate:
+                      </span>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => finish(item.id, n)}
+                          aria-label={`Finished, ${n} stars`}
+                          className="text-muted-foreground transition-colors hover:text-sunshine"
+                        >
+                          <Star className="h-4 w-4" />
+                        </button>
+                      ))}
+                    </div>
+                    {item.state === "suggestion" ? (
                       <button
-                        key={n}
-                        onClick={() => finish(item.id, n)}
-                        aria-label={`Finished, ${n} stars`}
-                        className="text-muted-foreground transition-colors hover:text-sunshine"
+                        onClick={() => setState(item.id, "in_progress")}
+                        className="text-xs font-semibold text-primary hover:underline"
                       >
-                        <Star className="h-4 w-4" />
+                        Started it →
                       </button>
-                    ))}
+                    ) : (
+                      <button
+                        onClick={() => setState(item.id, "suggestion")}
+                        className="text-xs font-semibold text-primary hover:underline"
+                      >
+                        Back to suggestions
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="mt-4 space-y-2">
