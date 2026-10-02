@@ -705,6 +705,31 @@ export function useCall(
       preferCurrentTab: false,
     } as DisplayMediaStreamOptions;
     const stream = await navigator.mediaDevices.getDisplayMedia(options);
+    // Linux browsers can't capture window/screen audio through the picker.
+    // PulseAudio/PipeWire expose the speakers' "Monitor" as a recording device,
+    // so pick that up and attach it to the screen stream instead.
+    if (withAudio && stream.getAudioTracks().length === 0) {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const monitor = devices.find(
+          (d) => d.kind === "audioinput" && /monitor|loopback|stereo mix/i.test(d.label),
+        );
+        if (monitor) {
+          const sys = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              deviceId: { exact: monitor.deviceId },
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+            },
+          });
+          const track = sys.getAudioTracks()[0];
+          if (track) stream.addTrack(track);
+        }
+      } catch {
+        /* best effort — sharing continues without sound */
+      }
+    }
     for (const t of stream.getAudioTracks()) t.contentHint = "music";
     screenRef.current = stream;
     setScreenStream(stream);
