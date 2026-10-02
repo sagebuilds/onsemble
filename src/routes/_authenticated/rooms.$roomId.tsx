@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Copy, History, Play, Settings2, UserMinus } from "lucide-react";
+import { Copy, History, Play, Settings2, UserMinus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,10 @@ function RoomHub() {
   const { data: history } = useWatchHistory(roomId);
   const { data: invites } = useRoomInvites(roomId);
   const [name, setName] = useState<string | null>(null);
+  const [me, setMe] = useState<string | null>(null);
+  useEffect(() => {
+    currentUserId().then(setMe);
+  }, []);
 
   if (isLoading) {
     return (
@@ -109,6 +113,33 @@ function RoomHub() {
     const { error } = await supabase.from("rooms").update({ services: next }).eq("id", roomId);
     if (error) toast.error("Couldn't save that preference.");
     else await qc.invalidateQueries({ queryKey: ["room", roomId] });
+  };
+
+  const removeMember = async (userId: string, displayName: string) => {
+    if (!window.confirm(`Remove ${displayName} from ${room.name}?`)) return;
+    const { data, error } = await supabase
+      .from("room_members")
+      .delete()
+      .eq("room_id", roomId)
+      .eq("user_id", userId)
+      .select("user_id");
+    if (error || !data?.length) {
+      toast.error("Couldn't remove them.");
+      return;
+    }
+    toast.success(`${displayName} was removed.`);
+    await qc.invalidateQueries({ queryKey: ["room-members", roomId] });
+  };
+
+  const cancelInvite = async (id: string, email: string) => {
+    if (!window.confirm(`Cancel the invite for ${email}?`)) return;
+    const { error } = await supabase.from("room_invites").delete().eq("id", id);
+    if (error) {
+      toast.error("Couldn't cancel that invite.");
+      return;
+    }
+    toast.success("Invite cancelled.");
+    await qc.invalidateQueries({ queryKey: ["room-invites", roomId] });
   };
 
   const startNight = async () => {
@@ -301,7 +332,25 @@ function RoomHub() {
                           {(m.profile?.display_name ?? "?").slice(0, 1).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      {m.profile?.display_name ?? "Friend"}
+                      <span className="flex-1 truncate">
+                        {m.profile?.display_name ?? "Friend"}
+                        {m.user_id === room.created_by && (
+                          <span className="ml-2 text-xs text-muted-foreground">Owner</span>
+                        )}
+                        {m.user_id === me && (
+                          <span className="ml-2 text-xs text-muted-foreground">You</span>
+                        )}
+                      </span>
+                      {m.user_id !== me && m.user_id !== room.created_by && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-full text-muted-foreground hover:text-destructive"
+                          onClick={() => removeMember(m.user_id, m.profile?.display_name ?? "this friend")}
+                        >
+                          <UserMinus className="mr-1 h-4 w-4" /> Remove
+                        </Button>
+                      )}
                     </li>
                   ))}
                   {(invites ?? []).map((invite) => (
@@ -312,10 +361,18 @@ function RoomHub() {
                       <span className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-border text-xs">
                         {invite.email.slice(0, 1).toUpperCase()}
                       </span>
-                      <span className="truncate">{invite.email}</span>
+                      <span className="flex-1 truncate">{invite.email}</span>
                       <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest">
                         Invited
                       </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full hover:text-destructive"
+                        onClick={() => cancelInvite(invite.id, invite.email)}
+                      >
+                        <X className="mr-1 h-4 w-4" /> Cancel invite
+                      </Button>
                     </li>
                   ))}
                 </ul>
