@@ -502,13 +502,13 @@ function Theater({ entry }: { entry: CallEntry }) {
                     )}
                   </div>
                 )}
-                <p className="mt-3 text-center text-sm text-muted-foreground">
-                  {pinnedId
-                    ? `Pinned ${featured?.name}${stageStream ? " — unpin to go back to the shared screen." : "."}`
-                    : layout === "grid"
-                      ? "Everyone at equal size."
-                      : "Whoever is talking takes the big frame."}
-                </p>
+                {(pinnedId || layout === "grid") && (
+                  <p className="mt-3 text-center text-sm text-muted-foreground">
+                    {pinnedId
+                      ? `Pinned ${featured?.name}${stageStream ? " — unpin to go back to the shared screen." : "."}`
+                      : "Everyone at equal size."}
+                  </p>
+                )}
               </div>
             ) : (
               <div className="w-full">
