@@ -43,6 +43,13 @@
       "when": 1790914145674,
       "tag": "0005_shelf_in_progress_state",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790914333044,
+      "tag": "0006_members_can_remove_members",
+      "breakpoints": true
     }
   ]
 }
