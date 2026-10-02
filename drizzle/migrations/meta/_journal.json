@@ -36,6 +36,13 @@
       "when": 1789309998468,
       "tag": "0004_add_room_emoji",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790914145674,
+      "tag": "0005_shelf_in_progress_state",
+      "breakpoints": true
     }
   ]
 }
