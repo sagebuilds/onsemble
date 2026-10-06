@@ -216,6 +216,18 @@ function Theater({ entry }: { entry: CallEntry }) {
     if (mediaError) toast(`${mediaError} You'll still see everyone else.`);
   }, [mediaError]);
 
+  /* A gentle nudge on arrival: headphones stop shared sound echoing back. */
+  const headphonesTipShown = useRef(false);
+  useEffect(() => {
+    if (!joined || headphonesTipShown.current) return;
+    headphonesTipShown.current = true;
+    toast("🎧 Tip: wear headphones", {
+      description:
+        "Shared movies and music sound best — and won't echo back to friends — when you're wearing headphones.",
+      duration: 8000,
+    });
+  }, [joined]);
+
   /* We were removed by a member, or arrived after the room was locked. */
   useEffect(() => {
     if (!removedNotice) return;

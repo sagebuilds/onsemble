@@ -14,7 +14,8 @@ const EXT = "onsemble-extension";
 
 export type PlaybackEvent = {
   type: "playback";
-  action: "play" | "pause" | "seeked";
+  action: "play" | "pause" | "seeked" | "tick";
+  paused?: boolean;
   currentTime: number;
   service?: string;
   at?: number;
@@ -68,7 +69,7 @@ export function useSync(roomKey: string, roomCode: string) {
 
       // Our own player moved — tell the room.
       if (data.type === "LOCAL_EVENT" && data.payload) {
-        setLastEvent(data.payload);
+        if (data.payload.action !== "tick") setLastEvent(data.payload);
         if (data.payload.service) setService(data.payload.service);
         channelRef.current?.send({
           type: "broadcast",
@@ -93,7 +94,7 @@ export function useSync(roomKey: string, roomCode: string) {
     channel.on("broadcast", { event: "playback" }, ({ payload }) => {
       const event = payload as PlaybackEvent & { senderId?: string };
       if (event.senderId === myId) return;
-      setLastEvent(event);
+      if (event.action !== "tick") setLastEvent(event);
       if (event.service) setService(event.service);
       // Push it into our own streaming tab through the extension.
       toExtension({ type: "REMOTE_EVENT", payload: event });
