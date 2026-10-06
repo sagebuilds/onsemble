@@ -168,6 +168,7 @@ export function useCall(
       const streams = conn ? [...conn.streams.values()] : [];
       const screen = meta.screenId ? (streams.find((s) => s.id === meta.screenId) ?? null) : null;
       const camera = streams.find((s) => s.id !== meta.screenId) ?? null;
+      if (screen && conn) bufferScreenReceivers(conn.pc, screen);
       list.push({
         id,
         name: meta.name,
@@ -230,7 +231,7 @@ export function useCall(
       for (const track of localRef.current?.getTracks() ?? [])
         pc.addTrack(track, localRef.current!);
       for (const track of screenRef.current?.getTracks() ?? [])
-        tuneScreenSender(pc.addTrack(track, screenRef.current!));
+        tuneScreenSender(pc.addTrack(track, screenRef.current!), pc);
       if (screenRef.current) setCameraBudget(pc, true);
 
       pc.onicecandidate = (e) => {
@@ -245,7 +246,8 @@ export function useCall(
       pc.onnegotiationneeded = async () => {
         try {
           entry.makingOffer = true;
-          await pc.setLocalDescription();
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription({ type: "offer", sdp: musicOpus(offer.sdp ?? "") });
           if (pc.localDescription)
             signal({ from: myId, to: remoteId, description: pc.localDescription.toJSON() });
         } catch {
@@ -483,7 +485,8 @@ export function useCall(
               }
             }
             if (msg.description.type === "offer") {
-              await pc.setLocalDescription();
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription({ type: "answer", sdp: musicOpus(answer.sdp ?? "") });
               if (pc.localDescription)
                 signal({ from: myId, to: msg.from, description: pc.localDescription.toJSON() });
             }
@@ -707,7 +710,11 @@ export function useCall(
     // music and film soundtracks aren't treated as speech. The extra hints are
     // Chromium-specific; other browsers ignore what they don't understand.
     const options = {
-      video: { frameRate: { ideal: 30 } },
+      video: {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30, max: 30 },
+      },
       audio: withAudio
         ? {
             echoCancellation: false,
@@ -759,7 +766,8 @@ export function useCall(
     screenRef.current = stream;
     setScreenStream(stream);
     for (const track of stream.getTracks())
-      for (const { pc } of peersRef.current.values()) tuneScreenSender(pc.addTrack(track, stream));
+      for (const { pc } of peersRef.current.values())
+        tuneScreenSender(pc.addTrack(track, stream), pc);
     for (const { pc } of peersRef.current.values()) setCameraBudget(pc, true);
     stream.getVideoTracks()[0]?.addEventListener("ended", () => stopShare());
     selfMetaRef.current = { ...selfMetaRef.current, screenId: stream.id };
@@ -792,18 +800,69 @@ export function useCall(
   };
 }
 
-/** When bandwidth or CPU runs short, drop resolution rather than frame rate. */
-function tuneScreenSender(sender: RTCRtpSender) {
-  if (sender.track?.kind !== "video") return;
+/** Shared-screen video budget per friend (bits per second). */
+const SCREEN_VIDEO_BITRATE = 3_000_000;
+/** Shared-screen sound budget: stereo music quality. */
+const SCREEN_AUDIO_BITRATE = 128_000;
+
+/**
+ * Ask for Opus in stereo at music bitrates, without silence-skipping. Applies
+ * to every audio stream in the connection; the mic stays a mono source.
+ */
+function musicOpus(sdp: string): string {
+  const pts = [...sdp.matchAll(/a=rtpmap:(\d+) opus\/48000\/2/gi)].map((m) => m[1]);
+  let out = sdp;
+  for (const pt of pts) {
+    out = out.replace(new RegExp(`a=fmtp:${pt} ([^\r\n]*)`, "g"), (_line, params: string) => {
+      const kept = params
+        .split(";")
+        .map((p) => p.trim())
+        .filter((p) => p && !/^(stereo|sprop-stereo|maxaveragebitrate|usedtx)=/i.test(p));
+      kept.push("stereo=1", "sprop-stereo=1", `maxaveragebitrate=${SCREEN_AUDIO_BITRATE}`, "usedtx=0");
+      return `a=fmtp:${pt} ${kept.join(";")}`;
+    });
+  }
+  return out;
+}
+
+/** Prefer the most efficient video codecs both sides support (AV1, then VP9). */
+function preferEfficientCodecs(pc: RTCPeerConnection, sender: RTCRtpSender) {
+  try {
+    const transceiver = pc.getTransceivers().find((t) => t.sender === sender);
+    const caps = RTCRtpSender.getCapabilities?.("video");
+    if (!transceiver?.setCodecPreferences || !caps) return;
+    const rank = (mime: string) =>
+      /av1/i.test(mime) ? 0 : /vp9/i.test(mime) ? 1 : /h264/i.test(mime) ? 2 : /vp8/i.test(mime) ? 3 : 4;
+    const codecs = [...caps.codecs].sort((a, b) => rank(a.mimeType) - rank(b.mimeType));
+    transceiver.setCodecPreferences(codecs);
+  } catch {
+    /* browser keeps its default order */
+  }
+}
+
+/**
+ * Tune a shared-screen sender: high priority, a fixed quality budget, and —
+ * when bandwidth or CPU runs short — drop resolution rather than frame rate.
+ */
+function tuneScreenSender(sender: RTCRtpSender, pc: RTCPeerConnection) {
+  const kind = sender.track?.kind;
+  if (kind === "video") preferEfficientCodecs(pc, sender);
   const apply = () => {
     try {
       const params = sender.getParameters();
       if (!params.encodings?.length) return false;
-      (params as RTCRtpSendParameters & { degradationPreference?: string }).degradationPreference =
-        "maintain-framerate";
+      if (kind === "video")
+        (params as RTCRtpSendParameters & { degradationPreference?: string }).degradationPreference =
+          "maintain-framerate";
       for (const enc of params.encodings) {
         enc.priority = "high";
         enc.networkPriority = "high";
+        if (kind === "video") {
+          enc.maxBitrate = SCREEN_VIDEO_BITRATE;
+          enc.maxFramerate = 30;
+        } else {
+          enc.maxBitrate = SCREEN_AUDIO_BITRATE;
+        }
       }
       void sender.setParameters(params).catch(() => undefined);
       return true;
@@ -817,6 +876,25 @@ function tuneScreenSender(sender: RTCRtpSender) {
   const timer = setInterval(() => {
     if (apply() || ++tries > 20) clearInterval(timer);
   }, 500);
+}
+
+/**
+ * Give a friend's shared screen a small steady buffer (~250 ms) so brief
+ * network hiccups don't show up as stutter. Nobody notices that on a movie.
+ */
+function bufferScreenReceivers(pc: RTCPeerConnection, screen: MediaStream) {
+  const ids = new Set(screen.getTracks().map((t) => t.id));
+  for (const r of pc.getReceivers()) {
+    if (!ids.has(r.track.id)) continue;
+    const rx = r as RTCRtpReceiver & { jitterBufferTarget?: number | null };
+    if ("jitterBufferTarget" in rx && rx.jitterBufferTarget !== 250) {
+      try {
+        rx.jitterBufferTarget = 250;
+      } catch {
+        /* unsupported */
+      }
+    }
+  }
 }
 
 /**
