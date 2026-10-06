@@ -94,8 +94,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         type: "ONSEMBLE_LOCAL_EVENT",
         payload: {
           type: "playback",
-          action: message.action, // "play" | "pause" | "seeked"
+          action: message.action, // "play" | "pause" | "seeked" | "tick"
           currentTime: message.currentTime,
+          paused: message.paused,
           service: message.service,
           at: Date.now(),
         },

@@ -14,7 +14,8 @@ const EXT = "onsemble-extension";
 
 export type PlaybackEvent = {
   type: "playback";
-  action: "play" | "pause" | "seeked";
+  action: "play" | "pause" | "seeked" | "tick";
+  paused?: boolean;
   currentTime: number;
   service?: string;
   at?: number;

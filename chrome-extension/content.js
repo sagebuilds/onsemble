@@ -19,6 +19,13 @@ const SERVICE =
 const DRIFT_TOLERANCE = 0.75; // seconds
 let video = null;
 let applyingRemote = false;
+// Whoever last played, paused or seeked leads; their player sends a position
+// heartbeat and everyone else gently catches up to it.
+let leading = false;
+const HEARTBEAT_MS = 3000;
+const NUDGE_RATE = 0.05; // speed up / slow down by 5% to close small gaps
+const SEEK_THRESHOLD = 2; // seconds — beyond this, jump instead of nudging
+const SETTLED = 0.25; // seconds — close enough, play at normal speed
 
 function log(...args) {
   console.log("[Onsemble]", ...args);
@@ -53,18 +60,44 @@ function attach(el) {
 
 function emit(action) {
   if (applyingRemote || !video) return;
+  if (action !== "tick") leading = true;
   chrome.runtime.sendMessage({
     type: "ONSEMBLE_LOCAL_EVENT",
     action,
     currentTime: video.currentTime,
+    paused: video.paused,
     service: SERVICE,
   });
+}
+
+setInterval(() => {
+  if (leading && video && !video.paused) emit("tick");
+}, HEARTBEAT_MS);
+
+/** Close a small gap by playing slightly faster or slower for a moment. */
+function nudgeTowards(target) {
+  const gap = target - video.currentTime;
+  if (Math.abs(gap) > SEEK_THRESHOLD) {
+    video.currentTime = target;
+    video.playbackRate = 1;
+  } else if (Math.abs(gap) > SETTLED) {
+    video.playbackRate = gap > 0 ? 1 + NUDGE_RATE : 1 - NUDGE_RATE;
+  } else {
+    video.playbackRate = 1;
+  }
 }
 
 /* ---------------- apply remote events ---------------- */
 
 function applyRemote(payload) {
   if (!video || payload?.type !== "playback") return;
+  if (payload.action === "tick") {
+    leading = false;
+    if (typeof payload.currentTime === "number" && !video.paused) nudgeTowards(payload.currentTime);
+    return;
+  }
+  leading = false;
+  video.playbackRate = 1;
   applyingRemote = true;
 
   const { action, currentTime } = payload;
