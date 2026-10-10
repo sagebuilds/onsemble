@@ -68,6 +68,8 @@ type SignalPayload = {
   to: string;
   description?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
+  /** Ask the other side to tear down and rebuild our connection. */
+  reset?: boolean;
 };
 
 const newId = () =>
@@ -275,7 +277,14 @@ export function useCall(
               if (metaRef.current.has(remoteId)) ensurePeerRef.current?.(remoteId);
             }, 400);
           } else {
+            // Try a quick ICE restart first; if the link is still dead after a
+            // few seconds, rebuild it from scratch on both ends.
             pc.restartIce();
+            setTimeout(() => {
+              if (peersRef.current.get(remoteId) !== entry) return;
+              if (pc.connectionState === "connected") return;
+              rebuildPeerRef.current?.(remoteId, true);
+            }, 6000);
           }
         }
         syncPeers();
@@ -287,6 +296,26 @@ export function useCall(
 
   const ensurePeerRef = useRef<((remoteId: string) => PeerConn) | null>(null);
   ensurePeerRef.current = ensurePeer;
+
+  /** Throw away a broken connection and start a fresh one with the same friend. */
+  const rebuildPeerRef = useRef<((remoteId: string, tellThem: boolean) => void) | null>(null);
+  rebuildPeerRef.current = (remoteId: string, tellThem: boolean) => {
+    const entry = peersRef.current.get(remoteId);
+    if (entry) {
+      entry.pc.onicecandidate = null;
+      entry.pc.ontrack = null;
+      entry.pc.onnegotiationneeded = null;
+      entry.pc.onconnectionstatechange = null;
+      entry.pc.close();
+      peersRef.current.delete(remoteId);
+    }
+    if (tellThem) signal({ from: myId, to: remoteId, reset: true });
+    syncPeers();
+    setTimeout(() => {
+      if (metaRef.current.has(remoteId) && !peersRef.current.has(remoteId))
+        ensurePeerRef.current?.(remoteId);
+    }, 400);
+  };
 
   const dropPeer = useCallback(
     (remoteId: string) => {
@@ -465,6 +494,10 @@ export function useCall(
       channel.on("broadcast", { event: "signal" }, async ({ payload }) => {
         const msg = payload as SignalPayload;
         if (msg.to !== myId || msg.from === myId) return;
+        if (msg.reset) {
+          rebuildPeerRef.current?.(msg.from, false);
+          return;
+        }
         const entry = ensurePeer(msg.from);
         const { pc } = entry;
         try {
@@ -498,7 +531,9 @@ export function useCall(
             }
           }
         } catch {
-          /* ignore out-of-order signalling errors */
+          // A description we can't apply means the two ends have drifted
+          // apart (e.g. after a share vanished mid-negotiation) — start over.
+          if (msg.description) rebuildPeerRef.current?.(msg.from, true);
         }
       });
 
@@ -691,14 +726,20 @@ export function useCall(
   const stopShare = useCallback(() => {
     const stream = screenRef.current;
     if (!stream) return;
-    for (const track of stream.getTracks()) {
-      track.stop();
-      for (const { pc } of peersRef.current.values()) {
-        const sender = pc.getSenders().find((s) => s.track === track);
-        if (sender) pc.removeTrack(sender);
+    screenRef.current = null;
+    const tracks = new Set(stream.getTracks());
+    for (const track of tracks) track.stop();
+    for (const { pc } of peersRef.current.values()) {
+      if (pc.signalingState === "closed") continue;
+      for (const sender of pc.getSenders()) {
+        if (!sender.track || !tracks.has(sender.track)) continue;
+        try {
+          pc.removeTrack(sender);
+        } catch {
+          /* connection is being rebuilt — nothing to remove */
+        }
       }
     }
-    screenRef.current = null;
     for (const { pc } of peersRef.current.values()) setCameraBudget(pc, false);
     setScreenStream(null);
     selfMetaRef.current = { ...selfMetaRef.current, screenId: null };
@@ -769,7 +810,17 @@ export function useCall(
       for (const { pc } of peersRef.current.values())
         tuneScreenSender(pc.addTrack(track, stream), pc);
     for (const { pc } of peersRef.current.values()) setCameraBudget(pc, true);
-    stream.getVideoTracks()[0]?.addEventListener("ended", () => stopShare());
+    // The shared window or tab can disappear without anyone pressing Stop.
+    // Catch that from every angle: any track ending, or a periodic check.
+    for (const t of stream.getTracks()) t.addEventListener("ended", () => stopShare());
+    const watchdog = setInterval(() => {
+      if (screenRef.current !== stream) return clearInterval(watchdog);
+      const video = stream.getVideoTracks()[0];
+      if (!video || video.readyState === "ended") {
+        clearInterval(watchdog);
+        stopShare();
+      }
+    }, 1500);
     selfMetaRef.current = { ...selfMetaRef.current, screenId: stream.id };
     pushMeta();
     return stream;
