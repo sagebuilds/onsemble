@@ -300,8 +300,25 @@ function AuthPage() {
             {errors.password && (
               <p className="text-xs font-medium text-destructive">{errors.password}</p>
             )}
-            {mode === "signup" && !errors.password && (
-              <p className="text-xs text-muted-foreground">At least 6 characters.</p>
+            {mode === "signup" && (
+              <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                <p className="mb-1 font-medium text-foreground">Your password needs to:</p>
+                <ul className="space-y-1">
+                  {[
+                    { ok: password.length >= 6, text: "Be at least 6 characters (longer is safer)" },
+                    { ok: password.length > 0 && password.length <= 72, text: "Be no more than 72 characters" },
+                    { ok: null, text: "Not be a common password or one that's appeared in a data breach (e.g. “password123”)" },
+                  ].map((r) => (
+                    <li key={r.text} className="flex items-start gap-2">
+                      <span aria-hidden className={r.ok ? "text-primary" : ""}>
+                        {r.ok === null ? "•" : r.ok ? "✓" : "○"}
+                      </span>
+                      <span className={r.ok ? "text-foreground" : ""}>{r.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2">Tip: a few random words together, like “maple-river-lantern”, is easy to remember and hard to guess.</p>
+              </div>
             )}
           </div>
           {mode === "signup" && (
