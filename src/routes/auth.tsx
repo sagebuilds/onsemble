@@ -306,7 +306,6 @@ function AuthPage() {
                 <ul className="space-y-1">
                   {[
                     { ok: password.length >= 6, text: "Be at least 6 characters (longer is safer)" },
-                    { ok: password.length > 0 && password.length <= 72, text: "Be no more than 72 characters" },
                     { ok: null, text: "Not be a common password or one that's appeared in a data breach (e.g. “password123”)" },
                   ].map((r) => (
                     <li key={r.text} className="flex items-start gap-2">
@@ -317,7 +316,6 @@ function AuthPage() {
                     </li>
                   ))}
                 </ul>
-                <p className="mt-2">Tip: a few random words together, like “maple-river-lantern”, is easy to remember and hard to guess.</p>
               </div>
             )}
           </div>
