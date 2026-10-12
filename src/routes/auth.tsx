@@ -57,8 +57,8 @@ function friendlyAuthError(message: string, mode: "signin" | "signup") {
     return "There's already an account with that email. Try signing in instead.";
   if (m.includes("password") && m.includes("should be"))
     return "Please choose a longer, stronger password.";
-  if (m.includes("pwned") || m.includes("compromised"))
-    return "That password has shown up in a data breach. Please pick a different one.";
+  if (m.includes("pwned") || m.includes("compromised") || m.includes("weak and easy to guess"))
+    return "That password is too common or has appeared in a data breach, so it isn't safe. Please pick a different, less guessable one.";
   if (m.includes("rate limit") || m.includes("too many"))
     return "Too many attempts just now. Wait a minute and try again.";
   if (m.includes("failed to fetch") || m.includes("network"))
